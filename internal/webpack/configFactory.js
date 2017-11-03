@@ -61,6 +61,8 @@ export default function webpackConfigFactory(buildOptions) {
     throw new Error('No bundle configuration exists for target:', target);
   }
 
+  const localIdentName = ifDev('[name]_[local]_[hash:base64:5]', '[hash:base64:10]');
+
   let webpackConfig = {
     // Define our entry chunks for our bundle.
     entry: {
@@ -454,116 +456,121 @@ export default function webpackConfigFactory(buildOptions) {
           // match the requirements. When no loader matches it will fallback to the
           // "file" loader at the end of the loader list.
           oneOf: removeNil([
-	        // JAVASCRIPT
-	        {
-	          test: /\.jsx?$/,
-	          // We will defer all our js processing to the happypack plugin
-	          // named "happypack-javascript".
-	          // See the respective plugin within the plugins section for full
-	          // details on what loader is being implemented.
-	          loader: 'happypack/loader?id=happypack-javascript',
-	          include: removeNil([
-	            ...bundleConfig.srcPaths.map(srcPath => path.resolve(appRootDir.get(), srcPath)),
-	            ifProdClient(path.resolve(appRootDir.get(), 'src/html')),
-	          ]),
-	        },
+            // JAVASCRIPT
+            {
+              test: /\.jsx?$/,
+              // We will defer all our js processing to the happypack plugin
+              // named "happypack-javascript".
+              // See the respective plugin within the plugins section for full
+              // details on what loader is being implemented.
+              loader: 'happypack/loader?id=happypack-javascript',
+              include: removeNil([
+                ...bundleConfig.srcPaths.map(srcPath => path.resolve(appRootDir.get(), srcPath)),
+                ifProdClient(path.resolve(appRootDir.get(), 'src/html')),
+              ]),
+            },
 
-	        // CSS
-	        // This is bound to our server/client bundles as we only expect to be
-	        // serving the client bundle as a Single Page Application through the
-	        // server.
-	        ifElse(isClient || isServer)(
-	          mergeDeep(
-	            { test: /(\.scss|\.css)$/ },
-	            // For development clients we will defer all our css processing to the
-	            // happypack plugin named "happypack-devclient-css".
-	            // See the respective plugin within the plugins section for full
-	            // details on what loader is being implemented.
-	            ifDevClient({
-	              loaders: ['happypack/loader?id=happypack-devclient-css'],
-	            }),
-	            // For a production client build we use the ExtractTextPlugin which
-	            // will extract our CSS into CSS files. We don't use happypack here
-	            // as there are some edge cases where it fails when used within
-	            // an ExtractTextPlugin instance.
-	            // Note: The ExtractTextPlugin needs to be registered within the
-	            // plugins section too.
-	            ifProdClient(() => ({
-	              use: [
-	                'classnames-loader',
-	                ...ExtractTextPlugin.extract({
-	                  fallback: 'style-loader',
-	                  use: [
-	                    `css-loader?modules=0&importLoaders=1&localIdentName=${localIdentName}`,
-	                    'postcss-loader',
-	                    'sass-loader?outputStyle=expanded',
-	                  ],
-	                }),
-	              ],
-	            })),
-	            // When targetting the server we use the "/locals" version of the
-	            // css loader, as we don't need any css files for the server.
-	            ifNode({
-	              use: [
-	                'classnames-loader',
-	                `css-loader/locals?modules=0&sourceMap&importLoaders=1&localIdentName=${localIdentName}`,
-	                'postcss-loader',
-	                'sass-loader?outputStyle=expanded&sourceMap',
-	              ],
-	            }),
-	          ),
-	        ),
+            // CSS
+            // This is bound to our server/client bundles as we only expect to be
+            // serving the client bundle as a Single Page Application through the
+            // server.
+            ifElse(isClient || isServer)(
+              mergeDeep(
+                { test: /(\.scss|\.css)$/ },
+                // For development clients we will defer all our css processing to the
+                // happypack plugin named "happypack-devclient-css".
+                // See the respective plugin within the plugins section for full
+                // details on what loader is being implemented.
+                ifDevClient({
+                  loaders: ['happypack/loader?id=happypack-devclient-css'],
+                }),
+                // For a production client build we use the ExtractTextPlugin which
+                // will extract our CSS into CSS files. We don't use happypack here
+                // as there are some edge cases where it fails when used within
+                // an ExtractTextPlugin instance.
+                // Note: The ExtractTextPlugin needs to be registered within the
+                // plugins section too.
+                ifProdClient(() => ({
+                  use: [
+                    'classnames-loader',
+                    ...ExtractTextPlugin.extract({
+                      fallback: 'style-loader',
+                      use: [
+                        `css-loader?modules=0&importLoaders=1&localIdentName=${localIdentName}`,
+                        'postcss-loader',
+                        'sass-loader?outputStyle=expanded',
+                      ],
+                    }),
+                  ],
+                })),
+                // When targetting the server we use the "/locals" version of the
+                // css loader, as we don't need any css files for the server.
+                ifNode({
+                  use: [
+                    'classnames-loader',
+                    `css-loader/locals?modules=0&sourceMap&importLoaders=1&localIdentName=${localIdentName}`,
+                    'postcss-loader',
+                    'sass-loader?outputStyle=expanded&sourceMap',
+                  ],
+                }),
+              ),
+            ),
 
-	        // Dont CSS modules on css files from node_modules folder
-	        ifElse(isClient || isServer)({
-	          test: /node_modules.*\.css$/,
-	          use: ifProdClient(
-	            ExtractTextPlugin.extract({
-	              fallback: 'style-loader',
-	              use: ['css-loader', 'postcss-loader'],
-	            }),
-	            [...ifNode(['css-loader/locals'], ['style-loader', 'css-loader']), 'postcss-loader'],
-	          ),
-	        }),
+            // Dont CSS modules on css files from node_modules folder
+            ifElse(isClient || isServer)({
+              test: /node_modules.*\.css$/,
+              use: ifProdClient(
+                ExtractTextPlugin.extract({
+                  fallback: 'style-loader',
+                  use: ['css-loader', 'postcss-loader'],
+                }),
+                [
+                  ...ifNode(['css-loader/locals'], ['style-loader', 'css-loader']),
+                  'postcss-loader',
+                ],
+              ),
+            }),
 
-	        // ASSETS (Images/Fonts/etc)
-	        // This is bound to our server/client bundles as we only expect to be
-	        // serving the client bundle as a Single Page Application through the
-	        // server.
-	        ifElse(isClient || isServer)(() => ({
-	          test: new RegExp(`\\.(${config('bundleAssetTypes').join('|')})$`, 'i'),
-	          loader: 'file-loader',
-	          query: {
-	            // What is the web path that the client bundle will be served from?
-	            // The same value has to be used for both the client and the
-	            // server bundles in order to ensure that SSR paths match the
-	            // paths used on the client.
-	            publicPath: isDev
-	              ? // When running in dev mode the client bundle runs on a
-	                // seperate port so we need to put an absolute path here.
-	                `http://${config('host')}:${config('clientDevServerPort')}${config('bundles.client.webPath')}`
-	              : // Otherwise we just use the configured web path for the client.
-	                config('bundles.client.webPath'),
-	            // We only emit files when building a web bundle, for the server
-	            // bundle we only care about the file loader being able to create
-	            // the correct asset URLs.
-	            emitFile: isClient,
-	          },
-	        })),
+            // ASSETS (Images/Fonts/etc)
+            // This is bound to our server/client bundles as we only expect to be
+            // serving the client bundle as a Single Page Application through the
+            // server.
+            ifElse(isClient || isServer)(() => ({
+              test: new RegExp(`\\.(${config('bundleAssetTypes').join('|')})$`, 'i'),
+              loader: 'file-loader',
+              query: {
+                // What is the web path that the client bundle will be served from?
+                // The same value has to be used for both the client and the
+                // server bundles in order to ensure that SSR paths match the
+                // paths used on the client.
+                publicPath: isDev
+                  ? // When running in dev mode the client bundle runs on a
+                    // seperate port so we need to put an absolute path here.
+                    `http://${config('host')}:${config('clientDevServerPort')}${config(
+                      'bundles.client.webPath',
+                    )}`
+                  : // Otherwise we just use the configured web path for the client.
+                    config('bundles.client.webPath'),
+                // We only emit files when building a web bundle, for the server
+                // bundle we only care about the file loader being able to create
+                // the correct asset URLs.
+                emitFile: isClient,
+              },
+            })),
 
-	        // MODERNIZR
-	        // This allows you to do feature detection.
-	        // @see https://modernizr.com/docs
-	        // @see https://github.com/peerigon/modernizr-loader
-	        ifClient({
-	          test: /\.modernizrrc.js$/,
-	          loader: 'modernizr-loader',
-	        }),
-	        ifClient({
-	          test: /\.modernizrrc(\.json)?$/,
-	          loader: 'modernizr-loader!json-loader',
-	        }),
-	      ]),
+            // MODERNIZR
+            // This allows you to do feature detection.
+            // @see https://modernizr.com/docs
+            // @see https://github.com/peerigon/modernizr-loader
+            ifClient({
+              test: /\.modernizrrc.js$/,
+              loader: 'modernizr-loader',
+            }),
+            ifClient({
+              test: /\.modernizrrc(\.json)?$/,
+              loader: 'modernizr-loader!json-loader',
+            }),
+          ]),
         },
       ],
     },
