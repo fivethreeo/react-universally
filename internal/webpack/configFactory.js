@@ -427,7 +427,7 @@ export default function webpackConfigFactory(buildOptions) {
               // Include sourcemaps for dev experience++.
               query: {
                 sourceMap: true,
-                modules: true,
+                modules: false,
                 importLoaders: 1,
                 localIdentName,
               },

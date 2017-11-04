@@ -7,7 +7,7 @@ import Helmet from 'react-helmet';
 
 import config from '../../../config';
 
-import './globals.css';
+import './globals.scss';
 
 import Error404 from './Error404';
 import Header from './Header';
@@ -105,14 +105,6 @@ function DemoApp() {
           this and the related items from the Content Security Policy in the
           global config if you have no intention of using milligram.
         */}
-        <link
-          rel="stylesheet"
-          href="//fonts.googleapis.com/css?family=Roboto:300,300italic,700,700italic"
-        />
-        <link
-          rel="stylesheet"
-          href="//cdn.rawgit.com/milligram/milligram/master/dist/milligram.min.css"
-        />
       </Helmet>
       <Header />
       <div style={{ paddingTop: '2rem', paddingBottom: '2rem' }}>
