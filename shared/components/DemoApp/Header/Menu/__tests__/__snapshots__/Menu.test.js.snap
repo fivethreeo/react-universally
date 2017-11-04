@@ -1,46 +1,80 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`<Home /> renders 1`] = `
-<ul
-  style={
-    Object {
-      "backgroundColor": "#c6c6c6",
-      "marginTop": "1rem",
-      "padding": "1rem",
-    }
-  }
->
-  <li>
-    <Link
-      replace={false}
+<div>
+  <Navbar
+    color="faded"
+    expand="md"
+    light={true}
+    tag="nav"
+  >
+    <NavbarBrand
+      tag={[Function]}
       to="/"
     >
       Home
-    </Link>
-  </li>
-  <li>
-    <Link
-      replace={false}
-      to="/counter"
+    </NavbarBrand>
+    <NavbarToggler
+      onClick={[Function]}
+      tag="button"
+      type="button"
+    />
+    <Collapse
+      appear={false}
+      enter={true}
+      exit={true}
+      in={false}
+      isOpen={false}
+      mountOnEnter={false}
+      navbar={true}
+      onEnter={[Function]}
+      onEntered={[Function]}
+      onEntering={[Function]}
+      onExit={[Function]}
+      onExited={[Function]}
+      onExiting={[Function]}
+      tag="div"
+      timeout={350}
+      unmountOnExit={false}
     >
-      Counter
-    </Link>
-  </li>
-  <li>
-    <Link
-      replace={false}
-      to="/posts"
-    >
-      Posts
-    </Link>
-  </li>
-  <li>
-    <Link
-      replace={false}
-      to="/about"
-    >
-      About
-    </Link>
-  </li>
-</ul>
+      <Nav
+        className="ml-auto"
+        navbar={true}
+        tag="ul"
+        vertical={false}
+      >
+        <NavItem
+          tag="li"
+        >
+          <NavLink
+            tag={[Function]}
+            to="/counter"
+          >
+            Counter
+          </NavLink>
+        </NavItem>
+        <NavItem
+          tag="li"
+        >
+          <NavLink
+            tag={[Function]}
+            to="/posts"
+          >
+            Posts
+          </NavLink>
+        </NavItem>
+        <NavItem
+          tag="li"
+        >
+          <NavLink
+            tag={[Function]}
+            to="/about"
+          >
+            About
+          </NavLink>
+        </NavItem>
+      </Nav>
+    </Collapse>
+  </Navbar>
+</div>
 `;
