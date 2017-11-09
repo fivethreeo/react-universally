@@ -1,0 +1,17 @@
+FROM react-base
+
+RUN mkdir /build
+
+COPY package.json /build/package.json
+
+WORKDIR /build
+
+RUN /usr/local/bin/npm install -g cross-env
+
+COPY docker/react/docker-entrypoint-dev.sh /docker-entrypoint.sh
+
+CMD ["/usr/local/bin/npm", "run", "develop"]
+
+EXPOSE 1337 7331
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

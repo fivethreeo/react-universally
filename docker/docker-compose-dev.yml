@@ -1,0 +1,19 @@
+version: "3.2"
+services:
+  react:
+    image: react-dev
+    volumes:
+      - type: bind
+        source: ../
+        target: /code
+      - type: bind
+        source: ./node_modules
+        target: /code/node_modules
+    build:
+      context: ../
+      dockerfile: docker/react/Dockerfile-dev
+    ports:
+      - "1337:1337"
+      - "7331:7331"
+    environment:
+      - HOST=localhost

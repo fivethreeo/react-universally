@@ -1,0 +1,33 @@
+version: "3.2"
+services:
+  react:
+    image: react-prod
+    build:
+      context: ../
+      dockerfile: docker/react/Dockerfile-prod
+    ports:
+      - "1337"
+    environment:
+      - HOST=localhost
+      - PORT=1337
+      - REACT_COPY_STATIC=on
+      - INSTANCES=1
+    command: /usr/local/bin/pm2-docker start react.config.js
+    volumes:
+      - type: volume
+        source: static
+        target: /static
+  nginx:
+    image: nginx:1.13.6-alpine
+    command: sh -c "cp /etc/nginx/conf.d/mysite.template /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"
+    volumes:
+      - type: bind
+        source: ./nginx/mysite.template
+        target: /etc/nginx/conf.d/mysite.template
+      - type: volume
+        source: static
+        target: /static
+    ports:
+      - "80:80"
+volumes:
+  static:
