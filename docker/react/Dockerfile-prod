@@ -1,0 +1,36 @@
+FROM react-base
+
+COPY / /code/
+
+WORKDIR /code
+
+RUN ls
+
+RUN rm -rf node_modules
+
+# Copy development node_modules into place
+RUN mv /node_modules.build node_modules
+
+# Build code and remove source
+RUN /usr/local/bin/npm run build && \
+  mv build ../ && \
+  rm -rf * && \
+  mv ../build ./ && \
+  rm -rf ../build/
+
+# Copy production node_modules into place
+RUN mv /node_modules.production node_modules
+
+RUN /usr/local/bin/npm uninstall -g babel-cli
+
+RUN /usr/local/bin/npm install -g pm2
+
+COPY docker/react/react.config.js /code/
+
+COPY docker/react/docker-entrypoint.sh /docker-entrypoint.sh
+
+CMD ["/usr/local/bin/pm2-docker", "start", "react.config.js"]
+
+EXPOSE 80 1337
+
+ENTRYPOINT ["/docker-entrypoint.sh"]

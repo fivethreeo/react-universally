@@ -3,7 +3,7 @@ import thunk from 'redux-thunk';
 import axios from 'axios';
 import reducer from '../reducers';
 
-function configureStore(initialState) {
+function configureStore(cookies, initialState) {
   const enhancers = compose(
     // Middleware store enhancer.
     applyMiddleware(
@@ -11,7 +11,7 @@ function configureStore(initialState) {
       // arguments to all the redux-thunk actions. Below we are passing a
       // preconfigured axios instance which can be used to fetch data with.
       // @see https://github.com/gaearon/redux-thunk
-      thunk.withExtraArgument({ axios }),
+      thunk.withExtraArgument({ axios, cookies }),
     ),
     // Redux Dev Tools store enhancer.
     // @see https://github.com/zalmoxisus/redux-devtools-extension

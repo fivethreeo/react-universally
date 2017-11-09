@@ -1,5 +1,9 @@
 django/
 
+docker/venv
+
+__pycache__
+
 # Environment Configuration
 .env
 

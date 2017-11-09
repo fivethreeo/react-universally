@@ -1,0 +1,9 @@
+uwsgi
+beautifulsoup4
+Django
+django-filter
+django-rest-knox
+djangorestframework
+Markdown
+Pillow
+requests

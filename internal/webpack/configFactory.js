@@ -496,7 +496,7 @@ export default function webpackConfigFactory(buildOptions) {
                     ...ExtractTextPlugin.extract({
                       fallback: 'style-loader',
                       use: [
-                        `css-loader?modules=0&importLoaders=1&localIdentName=${localIdentName}`,
+                        `css-loader?modules=false&importLoaders=1&localIdentName=${localIdentName}`,
                         'postcss-loader',
                         'sass-loader?outputStyle=expanded',
                       ],
@@ -508,7 +508,7 @@ export default function webpackConfigFactory(buildOptions) {
                 ifNode({
                   use: [
                     'classnames-loader',
-                    `css-loader/locals?modules=0&sourceMap&importLoaders=1&localIdentName=${localIdentName}`,
+                    `css-loader/locals?modules=false&sourceMap&importLoaders=1&localIdentName=${localIdentName}`,
                     'postcss-loader',
                     'sass-loader?outputStyle=expanded&sourceMap',
                   ],

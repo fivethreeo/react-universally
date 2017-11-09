@@ -15,7 +15,7 @@ import ServerHTML from './ServerHTML';
 /**
  * React application middleware, supports server side rendering.
  */
-export default function reactApplicationMiddleware(request, response) {
+export default function reactApplication(request, response) {
   // Ensure a nonce has been provided to us.
   // See the server/middleware/security.js for more info.
   if (typeof response.locals.nonce !== 'string') {
@@ -49,7 +49,7 @@ export default function reactApplicationMiddleware(request, response) {
   const jobContext = createJobContext();
 
   // Create the redux store.
-  const store = configureStore();
+  const store = response.locals.store;
 
   // Declare our React application.
   const app = (
