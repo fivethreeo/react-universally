@@ -1,5 +1,7 @@
 django/
 
+!docker/django
+
 docker/venv
 
 __pycache__

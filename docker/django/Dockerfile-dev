@@ -1,0 +1,9 @@
+FROM django-base
+
+COPY docker/django/docker-entrypoint-dev.sh /docker-entrypoint.sh
+
+EXPOSE 8000
+
+CMD ["/venv/bin/python", "/code/manage.py", "runserver", "0.0.0.0:8000"]
+
+ENTRYPOINT ["/docker-entrypoint.sh"]
