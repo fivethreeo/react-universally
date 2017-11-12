@@ -91,6 +91,7 @@ function resolveConfigForBrowserOrServer() {
  */
 export default function configGet(path) {
   const parts = typeof path === 'string' ? path.split('.') : path;
+  erv;
 
   if (parts.length === 0) {
     throw new Error(

@@ -8,6 +8,7 @@ set -e
 
 # >&2 echo "Postgres is up - continuing"
 
+cd /code
 
 if [ "x$DJANGO_MANAGEPY_MIGRATE" = 'xon' ]; then
     /venv/bin/python manage.py migrate --noinput

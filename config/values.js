@@ -7,6 +7,14 @@
 
 import * as EnvVars from './utils/envVars';
 
+function valueDefault(value, defaultValue, prefix, suffix) {
+  let out = value || defaultValue;
+  if ((out && prefix) || (out && suffix)) {
+    out = prefix + out.toString() + suffix;
+  }
+  return out;
+}
+
 const values = {
   // The configuration values that should be exposed to our client bundle.
   // This value gets passed through the /shared/utils/objects/filterWithRules
@@ -24,6 +32,8 @@ const values = {
     polyfillIO: true,
     // We need to expose all the htmlPage settings.
     htmlPage: true,
+    // We need to expose the api url.
+    apiurl: true,
   },
 
   // The host on which the server should run.
@@ -31,13 +41,25 @@ const values = {
   // The port on which the server should run.
   port: EnvVars.number('PORT', 1337),
 
+  // The host on which the server should run.
+  apiurl:
+    EnvVars.string('API_HOST', 'http://localhost') +
+    valueDefault(EnvVars.number('API_PORT', 8000), '', ':', '') +
+    EnvVars.string('API_PATH', '/api/'),
+
+  // The host on which the server should run.
+  apihost_backend:
+    EnvVars.string('API_HOST_BACKEND', 'http://django') +
+    valueDefault(EnvVars.number('API_PORT_BACKEND', 8000), '', ':', '') +
+    EnvVars.string('API_PATH_BACKEND', '/api/'),
+
   // The port on which the client bundle development server should run.
   clientDevServerPort: EnvVars.number('CLIENT_DEV_PORT', 7331),
 
   // This is an example environment variable which is used within the react
   // application to demonstrate the usage of environment variables across
   // the client and server bundles.
-  welcomeMessage: EnvVars.string('WELCOME_MSG', 'Hello world!'),
+  welcomeMessage: EnvVars.string('WELCOME_MSG', 'Hello woorld!'),
 
   // Disable server side rendering?
   disableSSR: false,

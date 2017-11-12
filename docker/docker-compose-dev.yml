@@ -17,6 +17,7 @@ services:
       - "7331:7331"
     environment:
       - HOST=localhost
+      - REACT_NPM_INSTALL=on
   django:
     image: django-dev
     volumes:
@@ -31,3 +32,7 @@ services:
       dockerfile: docker/django/Dockerfile-dev
     ports:
       - "8000:8000"
+    environment:
+      - DJANGO_PIP_INSTALL=on
+      - DJANGO_MANAGEPY_MIGRATE=on
+      - DJANGO_MANAGEPY_COLLECTSTATIC=xon 

@@ -1,3 +1,4 @@
+#!/bin/sh
 set -e
 
 # until psql $DATABASE_URL -c '\l'; do
@@ -7,12 +8,14 @@ set -e
 
 # >&2 echo "Postgres is up - continuing"
 
+cd /code
+
 if [ -z "`find /venv/ -type f`" ]; then
     cp -R /venv.tmp/* /venv/
 fi
 
 if [ "x$DJANGO_PIP_INSTALL" = 'xon' ]; then
-    /venv/bin/pip install requirements.txt 
+    /venv/bin/pip install -r requirements.txt 
 fi
 
 if [ "x$DJANGO_MANAGEPY_MIGRATE" = 'xon' ]; then
@@ -22,3 +25,6 @@ fi
 if [ "x$DJANGO_MANAGEPY_COLLECTSTATIC" = 'xon' ]; then
     /venv/bin/python manage.py collectstatic --noinput
 fi
+
+
+exec "$@"
