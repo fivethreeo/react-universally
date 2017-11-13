@@ -1,50 +1,120 @@
-- name: todo
-  actioncreators_prepend:
+- name: knoxauth
+  actioncreators_prepend: |
+    import { checkHttpStatus, parseJSON } from './utils';
+
+    if (process.env.BUILD_FLAG_IS_CLIENT === 'true') {
+      const btoa = window.btoa;
+      let api_url = 'frontend';
+    } else {
+      import * as btoa from 'btoa';
+      let api_url = 'backend';
+    }
   actions:
-    - name: addTodo
+    - name: authLoginUserRequest
+    - name: authLoginUser
+      args: email,password,redirect = '/'
+      thunk:
+        args: axios,cookie
+        thunk: |
+          return axios
+            .post(`${api_url}/v1/accounts/login/`, {
+              method: 'post',
+              headers: {
+                  'Accept': 'application/json',
+                  'Content-Type': 'application/json',
+                  'Authorization': `Basic ${auth}`
+              }
+          })
+          .then(checkHttpStatus)
+          .then(parseJSON)
+          .then((response) => {
+              cookies.set('knoxToken', response.token)
+              dispatch(authLoginUserSuccess(response.user));
+          })
+          .then(() => true);
+          .catch((error) => {
+              if (error && typeof error.response !== 'undefined' && error.response.status === 401) {
+                  // Invalid authentication credentials
+                  return error.response.json().then((data) => {
+                      dispatch(authLoginUserFailureReport(401, data.non_field_errors[0]));
+                  });
+              } else if (error && typeof error.response !== 'undefined' && error.response.status >= 500) {
+                  // Server side error
+                  dispatch(authLoginUserFailureReport(500, 'A server error occurred while sending your data!'));
+              } else {
+                  // Most likely connection issues
+                  dispatch(authLoginUserFailureReport('Connection Error', 'An error occurred while sending your data!'));
+              }
+
+              return Promise.resolve(true); // TODO: we need a promise here because of the tests, find a better way
+            })
+    - name: authLogoutAndRedirect
+      thunk:
+        args: axios,cookie
+        thunk: |
+          return axios
+            .get(`https://jsonplaceholder.typicode.com/Todos/${id}`)
+            .then(({ data }) => { for (let todo in data) dispatch(addTodo(todo)) })
+            .then(() => true);
+    - name: authLoginUserSuccess
       args: payload
-    - name: removeTodo
-      args: id
-    - name: linkToTodo
-      args: id,link
-    - name: noopToTodo
-    - name: fetchTodos
+    - name: authLoginUserFailure
+      args: status,statusText
+    - name: authLoginUserFailureReport
+      args: status,statusText
       thunk:
-        args: axios,cookie
+        args: cookies
         thunk: |
-          dispatch(todosActions.loading(id));
-
-          return axios
-            .get(`https://jsonplaceholder.typicode.com/Todos/${id}`)
-            .then(({ data }) => { for (let todo in data) dispatch(addTodo(todo)) })
-            .then(() => true);
-    - name: fetchTodosByType
-      args: type
+          cookies.delete('knoxToken')
+          authLoginUserFailure(status, statusText)
+          return Promise.resolve(true);
+    - name: authLogoutUser
+    - name: authLogoutUserDo
       thunk:
-        args: axios,cookie
+        args: cookies
         thunk: |
-          dispatch(todosActions.loading(id));
+          cookies.delete('knoxToken')
+          authLogoutUser()
+          return Promise.resolve(true);
 
-          return axios
-            .get(`https://jsonplaceholder.typicode.com/Todos/${id}`)
-            .then(({ data }) => { for (let todo in data) dispatch(addTodo(todo)) })
-            .then(() => true);
-
-  reducers_prepend:
+  reducers_prepend: |
+    const initialState = {
+        userName: null,
+        isAuthenticated: false,
+        isAuthenticating: false,
+        statusText: null
+    };
   reducers:
-    - name: todos
-      default: "[]"
+    - name: authReducer
+      default: initialState
       actions:
-        - name: addTodo
+        - name: authLoginUserRequest
           reducer: |
-            return something;
-  models:
-    - name: Todo
-      model_prepend:
-      actions:
-        - name: addTodo
+            return Object.assign({}, state, {
+                isAuthenticating: true,
+                statusText: null
+            });
+        - name: authLoginUserSuccess
           reducer: |
-            // Check if the tag already exists
-            if (!Tag.filter({ name: payload.tag }).exists()) {
-              Tag.create({ name: payload.tag });
-            }
+            return Object.assign({}, state, {
+                isAuthenticating: false,
+                isAuthenticated: true,
+                userName: action.payload.email,
+                statusText: 'You have been successfully logged in.'
+            });
+
+        - name: authLoginUserFailure
+          reducer: |
+            return Object.assign({}, state, {
+                isAuthenticating: false,
+                isAuthenticated: false,
+                userName: null,
+                statusText: `Authentication Error: ${action.payload.status} - ${action.payload.statusText}`
+            });
+        - name: authLogoutUser
+          reducer: |
+            return Object.assign({}, state, {
+                isAuthenticated: false,
+                userName: null,
+                statusText: 'You have been successfully logged out.'
+            });

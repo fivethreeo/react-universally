@@ -1,0 +1,54 @@
+- name: todo
+  actioncreators_prepend:
+  actions:
+    - name: addTodo
+      args: payload
+    - name: removeTodo
+      args: id
+    - name: linkToTodo
+      args: id,link
+    - name: noopToTodo
+    - name: fetchTodos
+      thunk:
+        args: axios,cookie
+        thunk: |
+          dispatch(todosActions.loading(id));
+
+          return axios
+            .get(`https://jsonplaceholder.typicode.com/Todos/${id}`)
+            .then(({ data }) => { for (let todo in data) dispatch(addTodo(todo)) })
+            .then(() => true);
+    - name: fetchTodosByType
+      args: type
+      thunk:
+        args: axios,cookie
+        thunk: |
+          dispatch(todosActions.loading(id));
+
+          return axios
+            .get(`https://jsonplaceholder.typicode.com/Todos/${id}`)
+            .then(({ data }) => { for (let todo in data) dispatch(addTodo(todo)) })
+            .then(() => true);
+
+  reducers_prepend:
+  reducers:
+    - name: todos
+      default: "[]"
+      actions:
+        - name: addTodo
+          reducer: |
+            return something;
+  models:
+    - name: Todo
+      model_prepend:
+      fields:
+        user: fk('User', 'todos')
+        tags: many('Tag', 'todos')
+
+      actions:
+        - name: addTodo
+          reducer: |
+            // Check if the tag already exists
+            if (!Tag.filter({ name: payload.tag }).exists()) {
+              Tag.create({ name: payload.tag });
+            }
