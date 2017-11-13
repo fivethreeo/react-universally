@@ -134,7 +134,7 @@ function write_apps(doc) {
           let model_reducers_actions = [];
           let cases = [];
           for (let reducer_action of model.actions) {
-            let reducer_action_name = akeActionName(reducer_action.name);
+            let reducer_action_name = makeActionName(reducer_action.name);
             model_reducers_actions.push(reducer_action_name);
             let indented_case = indentString(reducer_action.reducer, 2);
             cases.push(`case ${reducer_action_name}:\n${indented_case}`);
