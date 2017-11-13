@@ -125,62 +125,62 @@ function write_apps(doc) {
       }
 
       let model_dir = app_dir + 'models/';
+      if (app.models) {
+        mkdirp(model_dir, function(err) {
+          let models = [];
+          for (let model of app.models || []) {
+            models.push(model.name);
 
-      mkdirp(model_dir, function(err) {
-        let models = [];
-        for (let model of app.models || []) {
-          models.push(model.name);
+            let model_reducers_actions = [];
+            let cases = [];
+            for (let reducer_action of model.actions) {
+              let reducer_action_name = makeActionName(reducer_action.name);
+              model_reducers_actions.push(reducer_action_name);
+              let indented_case = indentString(reducer_action.reducer, 2);
+              cases.push(`case ${reducer_action_name}:\n${indented_case}`);
+            }
 
-          let model_reducers_actions = [];
-          let cases = [];
-          for (let reducer_action of model.actions) {
-            let reducer_action_name = makeActionName(reducer_action.name);
-            model_reducers_actions.push(reducer_action_name);
-            let indented_case = indentString(reducer_action.reducer, 2);
-            cases.push(`case ${reducer_action_name}:\n${indented_case}`);
+            let joined_cases = cases.join('');
+            let indented_switch = indentString(`switch (action.type) {\n${joined_cases}\n}`, 2);
+            let model_reducer = indentString(
+              `static reducer(state, action, ${model.name}, session) {\n${indented_switch}\n};`,
+              2,
+            );
+
+            let fields = '';
+            Object.keys(model.fields).forEach(function(key) {
+              fields += key + ': ' + model.fields[key] + ',\n';
+            });
+            fields = indentString(fields, 2);
+
+            let indented_model_actions = indentString(model_reducers_actions.join(',\n'), 2);
+            let model_actions_import = `import {\n${indented_model_actions}\nfrom '../actions';\n\n`;
+            write_file(
+              model_dir,
+              model.name,
+              `import { Model, many, fk, Schema } from 'redux-orm';` +
+                `export class ${model.name} extends Model {\n${model_reducer}\n}\n\n` +
+                `${model.name}.modelName = '${model.name}';\n\n` +
+                `${model.name}.fields = {\n${fields}};\n\n` +
+                `export default ${model.name};\n`,
+            );
           }
-
-          let joined_cases = cases.join('');
-          let indented_switch = indentString(`switch (action.type) {\n${joined_cases}\n}`, 2);
-          let model_reducer = indentString(
-            `static reducer(state, action, ${model.name}, session) {\n${indented_switch}\n};`,
-            2,
-          );
-
-          let fields = '';
-          Object.keys(model.fields).forEach(function(key) {
-            fields += key + ': ' + model.fields[key] + ',\n';
-          });
-          fields = indentString(fields, 2);
-
-          let indented_model_actions = indentString(model_reducers_actions.join(',\n'), 2);
-          let model_actions_import = `import {\n${indented_model_actions}\nfrom '../actions';\n\n`;
+          let model_imports = models
+            .map(function(m) {
+              return `import * as ${m} from './${m}';`;
+            })
+            .join('\n');
+          let models_list = models.join(', ');
           write_file(
             model_dir,
-            model.name,
-            `import { Model, many, fk, Schema } from 'redux-orm';` +
-              `export class ${model.name} extends Model {\n${model_reducer}\n}\n\n` +
-              `${model.name}.modelName = '${model.name}';\n\n` +
-              `${model.name}.fields = {\n${fields}};\n\n` +
-              `export default ${model.name};\n`,
+            'index',
+            `${model_imports}\n\n` +
+              `export const schema = new Schema();\n` +
+              `schema.register(${models_list});\n\n` +
+              `export default schema;\n`,
           );
-        }
-        let model_imports = models
-          .map(function(m) {
-            return `import * as ${m} from './${m}';`;
-          })
-          .join('\n');
-        let models_list = models.join(', ');
-        write_file(
-          model_dir,
-          'index',
-          `${model_imports}\n\n` +
-            `export const schema = new Schema();\n` +
-            `schema.register(${models_list});\n\n` +
-            `export default schema;\n`,
-        );
-      });
-
+        });
+      }
       write_file(app_dir, 'actions', actions_actions.join('\n\n'));
 
       let prepend = app.actioncreators_prepend;
