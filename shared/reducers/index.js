@@ -1,10 +1,13 @@
 import { combineReducers } from 'redux';
+import { routerReducer } from 'react-router-redux';
+
 import posts, * as FromPosts from './posts';
 
 // -----------------------------------------------------------------------------
 // REDUCER
 
 const rootReducer = combineReducers({
+  router: routerReducer,
   posts,
 });
 

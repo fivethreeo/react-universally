@@ -1,6 +1,6 @@
 import React from 'react';
 import { renderToString, renderToStaticMarkup } from 'react-dom/server';
-import { StaticRouter } from 'react-router-dom';
+import { ConnectedRouter } from '../../../shared/components/connectedrouter';
 import { AsyncComponentProvider, createAsyncContext } from 'react-async-component';
 import { JobProvider, createJobContext } from 'react-jobs';
 import asyncBootstrapper from 'react-async-bootstrapper';
@@ -48,18 +48,21 @@ export default function reactApplication(request, response) {
   // us the ability to track the resolved jobs to send back to the client.
   const jobContext = createJobContext();
 
-  // Create the redux store.
+  // Get history from response
+  const history = response.locals.history;
+
+  // Get redux store from response.
   const store = response.locals.store;
 
   // Declare our React application.
   const app = (
     <AsyncComponentProvider asyncContext={asyncComponentsContext}>
       <JobProvider jobContext={jobContext}>
-        <StaticRouter location={request.url} context={reactRouterContext}>
-          <Provider store={store}>
+        <Provider store={store}>
+          <ConnectedRouter history={history}>
             <DemoApp />
-          </Provider>
-        </StaticRouter>
+          </ConnectedRouter>
+        </Provider>
       </JobProvider>
     </AsyncComponentProvider>
   );
@@ -82,10 +85,8 @@ export default function reactApplication(request, response) {
       />,
     );
 
-    // Check if the router context contains a redirect, if so we need to set
-    // the specific status and redirect header and end the response.
-    if (reactRouterContext.url) {
-      response.status(302).setHeader('Location', reactRouterContext.url);
+    if (response.locals.initialLocation.pathname !== history.location.pathname) {
+      response.status(302).setHeader('Location', history.location.pathname);
       response.end();
       return;
     }

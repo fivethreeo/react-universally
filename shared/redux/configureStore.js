@@ -1,9 +1,10 @@
-import { createStore, applyMiddleware, compose } from 'redux';
+import { createStore, combineReducers, applyMiddleware, compose } from 'redux';
 import thunk from 'redux-thunk';
 import axios from 'axios';
 import reducer from '../reducers';
+import { routerMiddleware } from 'react-router-redux';
 
-function configureStore(cookies, initialState) {
+function configureStore(cookies, history, initialState) {
   const enhancers = compose(
     // Middleware store enhancer.
     applyMiddleware(
@@ -12,6 +13,7 @@ function configureStore(cookies, initialState) {
       // preconfigured axios instance which can be used to fetch data with.
       // @see https://github.com/gaearon/redux-thunk
       thunk.withExtraArgument({ axios, cookies }),
+      routerMiddleware(history),
     ),
     // Redux Dev Tools store enhancer.
     // @see https://github.com/zalmoxisus/redux-devtools-extension

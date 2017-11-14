@@ -1,6 +1,9 @@
 - name: knoxauth
   actioncreators_prepend: |
     import { checkHttpStatus, parseJSON } from './utils';
+    import {
+      push, go, replace
+    } from 'react-router-redux'
 
     if (process.env.BUILD_FLAG_IS_CLIENT === 'true') {
       const btoa = window.btoa;
@@ -65,17 +68,24 @@
       thunk:
         args: cookies
         thunk: |
-          cookies.delete('knoxToken')
-          authLoginUserFailure(status, statusText)
+          cookies.remove('knoxToken')
+          dispatch(authLoginUserFailure(status, statusText))
           return Promise.resolve(true);
     - name: authLogoutUser
     - name: authLogoutUserDo
       thunk:
         args: cookies
         thunk: |
-          cookies.delete('knoxToken')
-          authLogoutUser()
-          return Promise.resolve(true);
+          cookies.remove('knoxToken')
+          dispatch(authLogout())
+          return Promise.resolve(true)
+    - name: authLogoutUserAndRedirect
+      thunk:
+        args: cookies
+        thunk: |
+          dispatch(authLogoutUserDo())
+          dispatch(push('/login'))
+          return Promise.resolve(true)
 
   reducers_prepend: |
     const initialState = {

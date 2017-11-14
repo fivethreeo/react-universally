@@ -7,6 +7,9 @@ import asyncBootstrapper from 'react-async-bootstrapper';
 import { AsyncComponentProvider } from 'react-async-component';
 import { JobProvider } from 'react-jobs';
 import { Provider } from 'react-redux';
+import Cookies from 'universal-cookie';
+import createHistory from 'history/createBrowserHistory';
+import { ConnectedRouter } from 'react-router-redux';
 import configureStore from '../shared/redux/configureStore';
 
 import './polyfills';
@@ -17,8 +20,12 @@ import DemoApp from '../shared/components/DemoApp';
 // Get the DOM Element that will host our React application.
 const container = document.querySelector('#app');
 
+const history = createHistory();
+
 // Create our Redux store.
 const store = configureStore(
+  new Cookies(),
+  history,
   // Server side rendering would have mounted our state on this global.
   window.__APP_STATE__, // eslint-disable-line no-underscore-dangle
 );
@@ -47,9 +54,9 @@ function renderApp(TheApp) {
       <AsyncComponentProvider rehydrateState={asyncComponentsRehydrateState}>
         <JobProvider rehydrateState={rehydrateState}>
           <Provider store={store}>
-            <BrowserRouter forceRefresh={!supportsHistory}>
+            <ConnectedRouter history={history} forceRefresh={!supportsHistory}>
               <TheApp />
-            </BrowserRouter>
+            </ConnectedRouter>
           </Provider>
         </JobProvider>
       </AsyncComponentProvider>
