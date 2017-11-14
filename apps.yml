@@ -128,3 +128,11 @@
                 userName: null,
                 statusText: 'You have been successfully logged out.'
             });
+  components:    
+    - name: Todo
+      is_async: yes
+      component_content: |
+        yo
+    - name: Tada
+      component_content: |
+        yo

@@ -4,7 +4,7 @@ const indentString = require('indent-string');
 const mkdirp = require('mkdirp');
 
 function camelCaseToTitleCase(in_camelCaseString) {
-  var result = in_camelCaseString // "ToGetYourGEDInTimeASongAboutThe26ABCsIsOfTheEssenceButAPersonalIDCardForUser456ContainingABC26TimesIsNotAsEasyAs123"
+  const result = in_camelCaseString // "ToGetYourGEDInTimeASongAboutThe26ABCsIsOfTheEssenceButAPersonalIDCardForUser456ContainingABC26TimesIsNotAsEasyAs123"
     .replace(/([a-z])([A-Z][a-z])/g, '$1 $2') // "To Get YourGEDIn TimeASong About The26ABCs IsOf The Essence ButAPersonalIDCard For User456ContainingABC26Times IsNot AsEasy As123"
     .replace(/([A-Z][a-z])([A-Z])/g, '$1 $2') // "To Get YourGEDIn TimeASong About The26ABCs Is Of The Essence ButAPersonalIDCard For User456ContainingABC26Times Is Not As Easy As123"
     .replace(/([a-z])([A-Z]+[a-z])/g, '$1 $2') // "To Get Your GEDIn Time ASong About The26ABCs Is Of The Essence But APersonal IDCard For User456ContainingABC26Times Is Not As Easy As123"
@@ -25,186 +25,230 @@ function makeActionName(creatorName) {
   return camelCaseToTitleCase(creatorName).replace(/\s/g, '_').toUpperCase();
 }
 
-function ensureExists(path, mask, cb) {
-  if (typeof mask == 'function') {
-    // allow the `mask` parameter to be optional
-    cb = mask;
-    mask = 0777;
-  }
-  fs.mkdir(path, mask, function(err) {
-    if (err) {
-      if (err.code == 'EEXIST')
-        cb(null); // ignore the error if the folder already exists
-      else cb(err); // something else went wrong
-    } else cb(null); // successfully created folder
-  });
-}
-
 function write_file(directory, name, content) {
-  var stream = fs.createWriteStream(directory + name + '.js');
-  stream.once('open', function(fd) {
+  const stream = fs.createWriteStream(`${directory + name}.js`);
+  stream.once('open', (fd) => {
     stream.write(content);
     stream.end();
   });
 }
 
 function write_apps(doc) {
-  for (let app of doc) {
-    let app_dir = './' + app.name + '/';
-    mkdirp(app_dir, function(err) {
-      let actions = [];
-      let actions_actions = [];
-      let action_creators = [];
+  const app_files = [];
 
-      for (let action of app.actions || []) {
-        let action_name = makeActionName(action.name);
-        let action_args = action.args ? action.args.split(/,/g) : [];
+  for (const app of doc) {
+    const app_dir = `./${app.name}/`;
 
-        let creator_args_str = '';
-        if (action_args.length > 0) {
-          if (action_args.length > 1) {
-            let joined_args = action_args.join(', ');
-            creator_args_str = `(${joined_args}) => `;
-          } else {
-            creator_args_str = `${action_args[0]} => `;
-          }
-        }
+    // Make redux actions
+    const actions = [];
+    const actions_actions = [];
+    const action_creators = [];
+    const action_creator_names = [];
 
-        if (!action.thunk) {
-          actions.push(action_name);
-          actions_actions.push(`export ${action_name} = '${action_name}';`);
+    for (const action of app.actions || []) {
+      action_creator_names.push(action.name);
 
-          let payload = '';
-          if (action_args.length > 0) {
-            payload = ',\npayload: ';
-            if (action_args.length > 1) {
-              let joined_args = action_args.join(', \n');
-              let indented_payload = indentString(`\n${joined_args}`, 2);
-              payload += `{${indented_payload}\n}`;
-            } else {
-              payload += action_args[0];
-            }
-          }
-          let indented_object = indentString(`type: ${action_name}${payload}`, 2);
-          let indented_function = indentString(`return {\n${indented_object}\n};`, 2);
-          action_creators.push(
-            `export const ${action_name} => ${creator_args_str} {\n${indented_function}\n};`,
-          );
+      // Make redux action definition name
+      const action_name = makeActionName(action.name);
+      const action_args = action.args ? action.args.split(/,/g) : [];
+
+      // Make redux action creator arguments
+      let creator_args_str = '';
+      if (action_args.length > 0) {
+        if (action_args.length > 1) {
+          const joined_args = action_args.join(', ');
+          creator_args_str = `(${joined_args}) => `;
         } else {
-          let thunk_args = action.thunk.args.split(/,/).join(', ');
-          let thunk_args_str = thunk_args ? `, {${thunk_args}}` : '';
-          let indented_inner_function = indentString(action.thunk.thunk, 2);
-          let indented_outer_function = indentString(
-            `return (dispatch, getState${thunk_args_str}) => {\n${indented_inner_function}};`,
-            2,
-          );
-
-          action_creators.push(
-            `export const ${action.name} => ${creator_args_str} {\n${indented_outer_function}\n};`,
-          );
+          creator_args_str = `${action_args[0]} => `;
         }
       }
-      let reducers = [];
-      let reducers_names = [];
-      let reducers_actions = [];
-      for (let reducer of app.reducers || []) {
-        reducers_names.push(reducer.name);
-        let cases = [];
-        for (let reducer_action of reducer.actions) {
-          let action_name = makeActionName(reducer_action.name);
-          reducers_actions.push(action_name);
-          let indented_case = indentString(reducer_action.reducer, 2);
-          cases.push(`case ${action_name}:\n${indented_case}`);
+
+      if (!action.thunk) {
+        actions.push(action_name);
+        // Make redux action definitions
+        actions_actions.push(`export ${action_name} = '${action_name}';`);
+
+        let payload = '';
+        if (action_args.length > 0) {
+          // Make redux action creator payloads
+          payload = ',\npayload: ';
+          if (action_args.length > 1) {
+            const joined_args = action_args.join(', \n');
+            const indented_payload = indentString(`\n${joined_args}`, 2);
+            payload += `{${indented_payload}\n}`;
+          } else {
+            payload += action_args[0];
+          }
         }
-        cases.push('default:\n', indentString('return state', 2));
-        let joined_cases = cases.join('');
-        let indented_switch = indentString(`switch (action.type) {\n${joined_cases}\n}`, 2);
-        reducers.push(
-          `function ${reducer.name} (state = ${reducer.default}, action) {\n${indented_switch}\n};`,
+        const indented_object = indentString(`type: ${action_name}${payload}`, 2);
+        const indented_function = indentString(`return {\n${indented_object}\n};`, 2);
+        action_creators.push(
+          `export const ${action_name} => ${creator_args_str} {\n${indented_function}\n};`,
+        );
+      } else {
+        // Make redux thunks
+        const thunk_args = action.thunk.args.split(/,/).join(', ');
+        const thunk_args_str = thunk_args ? `, {${thunk_args}}` : '';
+        const indented_inner_function = indentString(action.thunk.thunk, 2);
+        const indented_outer_function = indentString(
+          `return (dispatch, getState${thunk_args_str}) => {\n${indented_inner_function}};`,
+          2,
+        );
+
+        action_creators.push(
+          `export const ${action.name} => ${creator_args_str} {\n${indented_outer_function}\n};`,
         );
       }
+    }
 
-      let model_dir = app_dir + 'models/';
-      if (app.models) {
-        mkdirp(model_dir, function(err) {
-          let models = [];
-          for (let model of app.models || []) {
-            models.push(model.name);
+    // Make redux reducers
+    const reducers = [];
+    const reducers_names = [];
+    const reducers_actions = [];
+    for (const reducer of app.reducers || []) {
+      reducers_names.push(reducer.name);
+      const cases = [];
+      // Make each switch case
+      for (const reducer_action of reducer.actions) {
+        const action_name = makeActionName(reducer_action.name);
+        reducers_actions.push(action_name);
+        const indented_case = indentString(reducer_action.reducer, 2);
+        cases.push(`case ${action_name}:\n${indented_case}`);
+      }
+      cases.push('default:\n', indentString('return state', 2));
+      const joined_cases = cases.join('');
+      const indented_switch = indentString(`switch (action.type) {\n${joined_cases}\n}`, 2);
+      reducers.push(
+        `function ${reducer.name} (state = ${reducer.default}, action) {\n${indented_switch}\n};`,
+      );
+    }
 
-            let model_reducers_actions = [];
-            let cases = [];
-            for (let reducer_action of model.actions) {
-              let reducer_action_name = makeActionName(reducer_action.name);
-              model_reducers_actions.push(reducer_action_name);
-              let indented_case = indentString(reducer_action.reducer, 2);
-              cases.push(`case ${reducer_action_name}:\n${indented_case}`);
-            }
+    // Make redux-orm models
+    const model_dir = `${app_dir}models/`;
+    if (app.models) {
+      const models = [];
+      for (const model of app.models || []) {
+        models.push(model.name);
 
-            let joined_cases = cases.join('');
-            let indented_switch = indentString(`switch (action.type) {\n${joined_cases}\n}`, 2);
-            let model_reducer = indentString(
-              `static reducer(state, action, ${model.name}, session) {\n${indented_switch}\n};`,
-              2,
-            );
+        const model_reducers_actions = [];
+        const cases = [];
 
-            let fields = '';
-            Object.keys(model.fields).forEach(function(key) {
-              fields += key + ': ' + model.fields[key] + ',\n';
-            });
-            fields = indentString(fields, 2);
+        // Make redux-orm model reducer
+        for (const reducer_action of model.actions) {
+          const reducer_action_name = makeActionName(reducer_action.name);
+          model_reducers_actions.push(reducer_action_name);
+          const indented_case = indentString(reducer_action.reducer, 2);
+          cases.push(`case ${reducer_action_name}:\n${indented_case}`);
+        }
 
-            let indented_model_actions = indentString(model_reducers_actions.join(',\n'), 2);
-            let model_actions_import = `import {\n${indented_model_actions}\nfrom '../actions';\n\n`;
-            write_file(
-              model_dir,
-              model.name,
-              `import { Model, many, fk, Schema } from 'redux-orm';` +
-                `export class ${model.name} extends Model {\n${model_reducer}\n}\n\n` +
-                `${model.name}.modelName = '${model.name}';\n\n` +
-                `${model.name}.fields = {\n${fields}};\n\n` +
-                `export default ${model.name};\n`,
-            );
-          }
-          let model_imports = models
-            .map(function(m) {
-              return `import * as ${m} from './${m}';`;
-            })
-            .join('\n');
-          let models_list = models.join(', ');
-          write_file(
-            model_dir,
-            'index',
-            `${model_imports}\n\n` +
-              `export const schema = new Schema();\n` +
-              `schema.register(${models_list});\n\n` +
-              `export default schema;\n`,
-          );
+        const joined_cases = cases.join('');
+        const indented_switch = indentString(`switch (action.type) {\n${joined_cases}\n}`, 2);
+        const model_reducer = indentString(
+          `static reducer(state, action, ${model.name}, session) {\n${indented_switch}\n};`,
+          2,
+        );
+        // Make redux-orm model field definitions
+        let fields = '';
+        Object.keys(model.fields).forEach((key) => {
+          fields += `${key}: ${model.fields[key]},\n`;
+        });
+        fields = indentString(fields, 2);
+
+        const indented_model_actions = indentString(model_reducers_actions.join(',\n'), 2);
+        const model_actions_import = `import {\n${indented_model_actions}\nfrom '../actions';\n\n`;
+
+        app_files.push({
+          directory: model_dir,
+          base_name: model.name,
+          content:
+            'import { Model, many, fk, Schema } from \'redux-orm\';' +
+            `export class ${model.name} extends Model {\n${model_reducer}\n}\n\n` +
+            `${model.name}.modelName = '${model.name}';\n\n` +
+            `${model.name}.fields = {\n${fields}};\n\n` +
+            `export default ${model.name};\n`,
         });
       }
-      write_file(app_dir, 'actions', actions_actions.join('\n\n'));
+      const model_imports = models
+        .map(m => `import * as ${m} from './${m}';`)
+        .join('\n');
+      const models_list = models.join(', ');
 
-      let prepend = app.actioncreators_prepend;
-      prepend = prepend ? `${prepend}\n\n` : '';
-      let joined_actions = indentString(actions.join(',\n'), 2);
-      let joined_action_creators = action_creators.join('\n\n');
-      write_file(
-        app_dir,
-        'creators',
-        `import {${joined_actions}\n\n} from './actions';\n\n${prepend}${joined_action_creators}\n`,
-      );
+      app_files.push({
+        directory: model_dir,
+        base_name: 'index',
+        content:
+          `${model_imports}\n\n` +
+          'export const schema = new Schema();\n' +
+          `schema.register(${models_list});\n\n` +
+          'export default schema;\n',
+      });
+    }
 
-      let reducers_prepend = app.reducers_prepend;
-      reducers_prepend = reducers_prepend ? `${reducers_prepend}\n\n` : '';
-      let joined_reducer_actions = indentString(reducers_actions.join(',\n'), 2);
-      let joined_reducers = reducers.join('\n\n');
-      let joined_reducers_names = reducers_names.join(', ');
-      write_file(
-        app_dir,
-        'reducers',
-        `import { combineReducers } from \'redux\';\n` +
-          `import {\n${joined_reducer_actions}\n} from './actions';\n\n${reducers_prepend}${joined_reducers}` +
-          `\n\nexport default reducer = combineReducers(${joined_reducers_names});\n`,
-      );
+    app_files.push({
+      directory: app_dir,
+      base_name: 'actions',
+      content: actions_actions.join('\n\n'),
+    });
+
+    let prepend = app.actioncreators_prepend;
+    prepend = prepend ? `${prepend}\n\n` : '';
+    const joined_actions = indentString(actions.join(',\n'), 2);
+    const joined_action_creators = action_creators.join('\n\n');
+
+    app_files.push({
+      directory: app_dir,
+      base_name: 'creators',
+      content: `import {${joined_actions}\n\n} from './actions';\n\n${prepend}${joined_action_creators}\n`,
+    });
+
+    let reducers_prepend = app.reducers_prepend;
+    reducers_prepend = reducers_prepend ? `${reducers_prepend}\n\n` : '';
+    const joined_reducer_actions = indentString(reducers_actions.join(',\n'), 2);
+    const joined_reducers = reducers.join('\n\n');
+    const joined_reducers_names = reducers_names.join(', ');
+
+    app_files.push({
+      directory: app_dir,
+      base_name: 'reducers',
+      content:
+        'import { combineReducers } from \'redux\';\n' +
+        `import {\n${joined_reducer_actions}\n} from './actions';\n\n${reducers_prepend}${joined_reducers}` +
+        `\n\nexport default reducer = combineReducers(${joined_reducers_names});\n`,
+    });
+
+    // Make react components
+    const components_dir = `${app_dir}components/`;
+    if (app.components) {
+      const components = [];
+      for (const component of app.components || []) {
+        components.push(component.name);
+
+        const directory = component.is_async ? `${components_dir}${component.name}/` : components_dir;
+
+        app_files.push({
+          directory,
+          base_name: component.name,
+          content: `${component.component_content}`,
+        });
+
+        if (component.is_async) {
+          app_files.push({
+            directory,
+            base_name: 'index',
+            content:
+              'import { asyncComponent } from \'react-async-component\';\n\n' +
+              'export default asyncComponent({\n' +
+              `resolve: () => System.import('./${component.name}'),\n  ` +
+              'ssrMode: \'boundary\',\n  ' +
+              `name: '${component.name}'\n});`,
+          });
+        }
+      }
+    }
+    app_files.map((app_file) => {
+      mkdirp(app_file.directory, () => {
+        write_file(app_file.directory, app_file.base_name, app_file.content);
+      });
     });
   }
 }
@@ -212,7 +256,7 @@ function write_apps(doc) {
 // Get document, or throw exception on error
 
 try {
-  var doc = yaml.safeLoad(fs.readFileSync('./apps.yml', 'utf8'));
+  const doc = yaml.safeLoad(fs.readFileSync('./apps.yml', 'utf8'));
   write_apps(doc);
 } catch (e) {
   console.log(e);
