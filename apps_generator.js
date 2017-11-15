@@ -28,7 +28,9 @@ function makeActionName(creatorName) {
 
 function multiline_function(code, indent) {
   const lines = code.split('\n');
-  if (lines.length > 1) { return `${lines[0]}\n${indentString(lines.slice(1, -1).join('\n'), indent)}`; }
+  if (lines.length > 1) {
+    return `${lines[0]}\n${indentString(lines.slice(1, -1).join('\n'), indent)}`;
+  }
   return lines[0];
   return code;
 }
@@ -45,7 +47,7 @@ function write_apps(doc) {
   const app_files = [];
 
   for (const app of doc) {
-    const app_dir = `./${app.name}/`;
+    const app_dir = `shared/${app.name}/`;
 
     // Make redux actions
     const actions = [];
@@ -61,7 +63,7 @@ function write_apps(doc) {
       const action_args = action.args ? action.args.split(/,/g) : [];
 
       // Make redux action creator arguments
-      let creator_args_str = '';
+      let creator_args_str = '() =>';
       if (action_args.length > 0) {
         if (action_args.length > 1) {
           const joined_args = action_args.join(', ');
@@ -74,7 +76,7 @@ function write_apps(doc) {
       if (!action.thunk) {
         actions.push(action_name);
         // Make redux action definitions
-        actions_actions.push(`export ${action_name} = '${action_name}';`);
+        actions_actions.push(`export const ${action_name} = '${action_name}';`);
 
         let payload = '';
         if (action_args.length > 0) {
@@ -91,7 +93,7 @@ function write_apps(doc) {
         const indented_object = indentString(`type: ${action_name}${payload}`, 2);
         const indented_function = indentString(`return {\n${indented_object}\n};`, 2);
         action_creators.push(
-          `export const ${action_name} => ${creator_args_str} {\n${indented_function}\n};`,
+          `export const ${action.name} = ${creator_args_str} {\n${indented_function}\n};`,
         );
       } else {
         // Make redux thunks
@@ -104,7 +106,7 @@ function write_apps(doc) {
         );
 
         action_creators.push(
-          `export const ${action.name} => ${creator_args_str} {\n${indented_outer_function}\n};`,
+          `export const ${action.name} = ${creator_args_str} {\n${indented_outer_function}\n};`,
         );
       }
     }
@@ -226,47 +228,47 @@ function write_apps(doc) {
 
     const selectors_names = [];
     let selectors_code = '';
+    if (app.selectors) {
+      for (const selector of app.selectors || []) {
+        selectors_names.push(selector.name);
 
-    for (const selector of app.selectors || []) {
-      selectors_names.push(selector.name);
-
-      if (!(selectors_code == '')) {
-        selectors_code += '\n\n';
-      }
-
-      selectors_code += `export const ${selector.name} = `;
-
-      if (!selector.combine) {
-        selectors_code += multiline_function(selector.function, 2);
-      } else {
-        let indent = 2;
-        let start = 'createSelector(\n';
-        let end = ')';
-
-        if (selector.maker) {
-          indent = 4;
-          start = '() => {\n return createSelector(\n';
-          end = '  )\n}';
+        if (!(selectors_code == '')) {
+          selectors_code += '\n\n';
         }
 
-        selectors_code +=
-          start +
-          indentString(
-            `[ ${selector.combine.split(',').join(', ')} ],\n${selector.function}`,
-            indent,
-          ) +
-          end;
+        selectors_code += `export const ${selector.name} = `;
+
+        if (!selector.combine) {
+          selectors_code += multiline_function(selector.function, 2);
+        } else {
+          let indent = 2;
+          let start = 'createSelector(\n';
+          let end = ')';
+
+          if (selector.maker) {
+            indent = 4;
+            start = '() => {\n return createSelector(\n';
+            end = '  )\n}';
+          }
+
+          selectors_code +=
+            start +
+            indentString(
+              `[ ${selector.combine.split(',').join(', ')} ],\n${selector.function}`,
+              indent,
+            ) +
+            end;
+        }
       }
+
+      let selectors_prepend = app.selectors_prepend || '';
+      selectors_prepend = selectors_prepend ? `${selectors_prepend}\n\n` : '';
+      app_files.push({
+        directory: app_dir,
+        base_name: 'selectors',
+        content: `import { createSelector } from 'reselect'\n\n${selectors_prepend}${selectors_code}`,
+      });
     }
-
-    let selectors_prepend = app.selectors_prepend || '';
-    selectors_prepend = selectors_prepend ? `${selectors_prepend}\n\n` : '';
-    app_files.push({
-      directory: app_dir,
-      base_name: 'selectors',
-      content: `import { createSelector } from 'reselect'\n\n${selectors_prepend}${selectors_code}`,
-    });
-
     // Make react components
     const components_dir = `${app_dir}components/`;
     if (app.components) {
@@ -279,28 +281,53 @@ function write_apps(doc) {
           : components_dir;
         const parent_directory = component.is_async ? '../../' : '../';
 
+        const component_actions = component.actions || {};
+
         const import_actions = _.intersection(
-          (component.actions || '').split(','),
+          Object.keys(component_actions),
           action_creator_names,
         ).join(',\n  ');
         const import_actions_str = import_actions
           ? `import {\n  ${import_actions}\n} from '${parent_directory}creators';\n\n`
           : '';
 
+        const actions_map = [];
+        _.pairs(component_actions).forEach((pair) => {
+          actions_map.push(`${pair[1]}: ${pair[0]}`);
+        });
+        let actions_map_str = actions_map.join(',\n');
+        actions_map_str = actions_map_str ? indentString(actions_map_str) : '';
+        actions_map_str = actions_map_str
+          ? `const mapActionsToProps = {\n${actions_map_str}\n}\n\n`
+          : '';
+
+        const component_selectors = component.selectors || {};
+
         const import_selectors = _.intersection(
-          (component.selectors || '').split(','),
+          Object.keys(component_selectors),
           selectors_names,
         ).join(',\n  ');
         const import_selectors_str = import_selectors
           ? `import {\n  ${import_selectors}\n} from '${parent_directory}selectors';\n\n`
           : '';
 
-        const prepend = component.component_prepend || '';
+        const selectors_map = [];
+        _.pairs(component_selectors).forEach((pair) => {
+          selectors_map.push(`${pair[1]}: ${pair[0]}`);
+        });
+
+        let selectors_map_str = selectors_map.join(',\n');
+        selectors_map_str = selectors_map_str ? indentString(selectors_map_str) : '';
+        selectors_map_str = selectors_map_str
+          ? `const mapStateToProps = {\n${selectors_map_str}\n}\n\n`
+          : '';
+
+        const prepend = component.prepend || '';
 
         app_files.push({
           directory,
           base_name: component.name,
-          content: `${import_actions_str}${prepend}${component.component_content}`,
+          content: `${import_actions_str}${import_selectors_str}${prepend}${actions_map_str}${selectors_map_str}${component.component_content}`,
         });
 
         if (component.is_async) {

@@ -1,17 +1,16 @@
 - name: knoxauth
   actioncreators_prepend: |
-    import { checkHttpStatus, parseJSON } from './utils';
+    // import { checkHttpStatus, parseJSON } from './utils'
     import {
       push, go, replace
     } from 'react-router-redux'
+    
+    import * as _btoa from 'btoa'
+    
+    const btoa = (process.env.BUILD_FLAG_IS_CLIENT === 'true') ? window.btoa : _btoa
 
-    if (process.env.BUILD_FLAG_IS_CLIENT === 'true') {
-      const btoa = window.btoa;
-      let api_url = 'frontend';
-    } else {
-      import * as btoa from 'btoa';
-      let api_url = 'backend';
-    }
+    const api_url = (process.env.BUILD_FLAG_IS_CLIENT === 'true') ? 'frontend' : 'backend'
+
   actions:
     - name: authLoginUserRequest
     - name: authLoginUser
@@ -34,7 +33,7 @@
               cookies.set('knoxToken', response.token)
               dispatch(authLoginUserSuccess(response.user));
           })
-          .then(() => true);
+          .then(() => true)
           .catch((error) => {
               if (error && typeof error.response !== 'undefined' && error.response.status === 401) {
                   // Invalid authentication credentials
@@ -129,31 +128,33 @@
                 statusText: 'You have been successfully logged out.'
             });
   selectors:
-    - name: getVisibilityFilter
-      function: (state, props) => state.todoLists[props.listId].visibilityFilter
-    - name: getTodos
-      function: (state, props) => state.todoLists[props.listId].todos
-    - name: getVisibleTodos
-      combine: getVisibilityFilter,getTodos
-      maker: false
-      function: |
-        (visibilityFilter, todos) => {
-          switch (visibilityFilter) {
-            case 'SHOW_COMPLETED':
-              return todos.filter(todo => todo.completed)
-            case 'SHOW_ACTIVE':
-              return todos.filter(todo => !todo.completed)
-            default:
-              return todos
+  components:    
+    - name: LoginRoute
+      actions:
+      selectors:
+      prepend: |
+        import React from 'react';
+        import PropTypes, { string } from 'prop-types';
+        import { compose } from 'redux';
+        import { connect } from 'react-redux';
+        import { withJob } from 'react-jobs';
+        import Helmet from 'react-helmet';
+        // import LoginForm from './LoginForm';
+      component_content: |
+
+        class LoginRoute extends React.Component {
+
+          render() {
+            return (
+              <div>
+                <h3>Login</h3>
+              </div>
+            );
           }
         }
-  components:    
-    - name: Todo
-      is_async: true
-      actions: authLoginUserSuccess,authLoginUserFailure,somethingElse
-      selectors:
-      component_content: |
-        yo
+
+        export default connect(mapStateToProps, mapActionsToProps)(LoginRoute)
+
     - name: Tada
       actions: somethingElse
       selectors: 
