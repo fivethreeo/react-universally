@@ -2,6 +2,7 @@ const yaml = require('js-yaml');
 const fs = require('fs');
 const indentString = require('indent-string');
 const mkdirp = require('mkdirp');
+const _ = require('underscore');
 
 function camelCaseToTitleCase(in_camelCaseString) {
   const result = in_camelCaseString // "ToGetYourGEDInTimeASongAboutThe26ABCsIsOfTheEssenceButAPersonalIDCardForUser456ContainingABC26TimesIsNotAsEasyAs123"
@@ -23,6 +24,13 @@ function camelCaseToTitleCase(in_camelCaseString) {
 
 function makeActionName(creatorName) {
   return camelCaseToTitleCase(creatorName).replace(/\s/g, '_').toUpperCase();
+}
+
+function multiline_function(code, indent) {
+  const lines = code.split('\n');
+  if (lines.length > 1) { return `${lines[0]}\n${indentString(lines.slice(1, -1).join('\n'), indent)}`; }
+  return lines[0];
+  return code;
 }
 
 function write_file(directory, name, content) {
@@ -157,20 +165,20 @@ function write_apps(doc) {
         const indented_model_actions = indentString(model_reducers_actions.join(',\n'), 2);
         const model_actions_import = `import {\n${indented_model_actions}\nfrom '../actions';\n\n`;
 
+        const model_prepend = model.prepend || '';
+
         app_files.push({
           directory: model_dir,
           base_name: model.name,
           content:
-            'import { Model, many, fk, Schema } from \'redux-orm\';' +
+            `import { Model, many, fk, Schema } from \'redux-orm\'${model_prepend}` +
             `export class ${model.name} extends Model {\n${model_reducer}\n}\n\n` +
             `${model.name}.modelName = '${model.name}';\n\n` +
             `${model.name}.fields = {\n${fields}};\n\n` +
             `export default ${model.name};\n`,
         });
       }
-      const model_imports = models
-        .map(m => `import * as ${m} from './${m}';`)
-        .join('\n');
+      const model_imports = models.map(m => `import * as ${m} from './${m}';`).join('\n');
       const models_list = models.join(', ');
 
       app_files.push({
@@ -190,7 +198,7 @@ function write_apps(doc) {
       content: actions_actions.join('\n\n'),
     });
 
-    let prepend = app.actioncreators_prepend;
+    let prepend = app.actioncreators_prepend || '';
     prepend = prepend ? `${prepend}\n\n` : '';
     const joined_actions = indentString(actions.join(',\n'), 2);
     const joined_action_creators = action_creators.join('\n\n');
@@ -211,9 +219,52 @@ function write_apps(doc) {
       directory: app_dir,
       base_name: 'reducers',
       content:
-        'import { combineReducers } from \'redux\';\n' +
+        "import { combineReducers } from 'redux';\n" +
         `import {\n${joined_reducer_actions}\n} from './actions';\n\n${reducers_prepend}${joined_reducers}` +
         `\n\nexport default reducer = combineReducers(${joined_reducers_names});\n`,
+    });
+
+    const selectors_names = [];
+    let selectors_code = '';
+
+    for (const selector of app.selectors || []) {
+      selectors_names.push(selector.name);
+
+      if (!(selectors_code == '')) {
+        selectors_code += '\n\n';
+      }
+
+      selectors_code += `export const ${selector.name} = `;
+
+      if (!selector.combine) {
+        selectors_code += multiline_function(selector.function, 2);
+      } else {
+        let indent = 2;
+        let start = 'createSelector(\n';
+        let end = ')';
+
+        if (selector.maker) {
+          indent = 4;
+          start = '() => {\n return createSelector(\n';
+          end = '  )\n}';
+        }
+
+        selectors_code +=
+          start +
+          indentString(
+            `[ ${selector.combine.split(',').join(', ')} ],\n${selector.function}`,
+            indent,
+          ) +
+          end;
+      }
+    }
+
+    let selectors_prepend = app.selectors_prepend || '';
+    selectors_prepend = selectors_prepend ? `${selectors_prepend}\n\n` : '';
+    app_files.push({
+      directory: app_dir,
+      base_name: 'selectors',
+      content: `import { createSelector } from 'reselect'\n\n${selectors_prepend}${selectors_code}`,
     });
 
     // Make react components
@@ -223,12 +274,33 @@ function write_apps(doc) {
       for (const component of app.components || []) {
         components.push(component.name);
 
-        const directory = component.is_async ? `${components_dir}${component.name}/` : components_dir;
+        const directory = component.is_async
+          ? `${components_dir}${component.name}/`
+          : components_dir;
+        const parent_directory = component.is_async ? '../../' : '../';
+
+        const import_actions = _.intersection(
+          (component.actions || '').split(','),
+          action_creator_names,
+        ).join(',\n  ');
+        const import_actions_str = import_actions
+          ? `import {\n  ${import_actions}\n} from '${parent_directory}creators';\n\n`
+          : '';
+
+        const import_selectors = _.intersection(
+          (component.selectors || '').split(','),
+          selectors_names,
+        ).join(',\n  ');
+        const import_selectors_str = import_selectors
+          ? `import {\n  ${import_selectors}\n} from '${parent_directory}selectors';\n\n`
+          : '';
+
+        const prepend = component.component_prepend || '';
 
         app_files.push({
           directory,
           base_name: component.name,
-          content: `${component.component_content}`,
+          content: `${import_actions_str}${prepend}${component.component_content}`,
         });
 
         if (component.is_async) {
@@ -236,10 +308,10 @@ function write_apps(doc) {
             directory,
             base_name: 'index',
             content:
-              'import { asyncComponent } from \'react-async-component\';\n\n' +
+              "import { asyncComponent } from 'react-async-component';\n\n" +
               'export default asyncComponent({\n' +
               `resolve: () => System.import('./${component.name}'),\n  ` +
-              'ssrMode: \'boundary\',\n  ' +
+              "ssrMode: 'boundary',\n  " +
               `name: '${component.name}'\n});`,
           });
         }

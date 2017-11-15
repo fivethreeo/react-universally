@@ -128,11 +128,39 @@
                 userName: null,
                 statusText: 'You have been successfully logged out.'
             });
+  selectors:
+    - name: getVisibilityFilter
+      function: (state, props) => state.todoLists[props.listId].visibilityFilter
+    - name: getTodos
+      function: (state, props) => state.todoLists[props.listId].todos
+    - name: getVisibleTodos
+      combine: getVisibilityFilter,getTodos
+      maker: false
+      function: |
+        (visibilityFilter, todos) => {
+          switch (visibilityFilter) {
+            case 'SHOW_COMPLETED':
+              return todos.filter(todo => todo.completed)
+            case 'SHOW_ACTIVE':
+              return todos.filter(todo => !todo.completed)
+            default:
+              return todos
+          }
+        }
   components:    
     - name: Todo
-      is_async: yes
+      is_async: true
+      actions: authLoginUserSuccess,authLoginUserFailure,somethingElse
+      selectors:
       component_content: |
         yo
     - name: Tada
+      actions: somethingElse
+      selectors: 
+      component_content: |
+        yo
+    - name: Taday
+      actions: authLoginUserFailure
+      selectors: 
       component_content: |
         yo
