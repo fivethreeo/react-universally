@@ -90,6 +90,7 @@
     "react-router-redux": "^5.0.0-alpha.8",
     "reactstrap": "^5.0.0-alpha.3",
     "redux": "3.7.2",
+    "redux-form": "^7.1.2",
     "redux-thunk": "2.2.0",
     "serialize-javascript": "1.4.0",
     "source-map-support": "0.4.15",

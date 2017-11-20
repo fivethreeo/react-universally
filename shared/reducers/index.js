@@ -1,5 +1,6 @@
 import { combineReducers } from 'redux';
 import { routerReducer } from 'react-router-redux';
+import { reducer as reduxFormReducer } from 'redux-form';
 
 import posts, * as FromPosts from './posts';
 
@@ -9,6 +10,7 @@ import posts, * as FromPosts from './posts';
 const rootReducer = combineReducers({
   router: routerReducer,
   posts,
+  form: reduxFormReducer,
 });
 
 // -----------------------------------------------------------------------------

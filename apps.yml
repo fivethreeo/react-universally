@@ -139,7 +139,7 @@
         import { connect } from 'react-redux';
         import { withJob } from 'react-jobs';
         import Helmet from 'react-helmet';
-        // import LoginForm from './LoginForm';
+        import LoginForm from './LoginForm';
       component_content: |
 
         class LoginRoute extends React.Component {
@@ -147,19 +147,53 @@
           render() {
             return (
               <div>
-                <h3>Login</h3>
+                <h3>Login</h3><LoginForm />
               </div>
             );
           }
         }
 
-        export default connect(mapStateToProps, mapActionsToProps)(LoginRoute)
+        // export default connect(mapStateToProps, mapActionsToProps)(LoginRoute);
 
-    - name: Tada
-      actions: somethingElse
+        export default LoginRoute
+    - name: LoginForm
+      actions: authLoginUser
       selectors: 
+      prepend: |
+        import React from 'react'
+        import { Field, reduxForm } from 'redux-form'
       component_content: |
-        yo
+
+        const LoginForm = props => {
+          const { handleSubmit, pristine, reset, submitting } = props
+          return (
+            <form onSubmit={handleSubmit}>
+              <div>
+                <label>First Name</label>
+                <div>
+                  <Field
+                    name="firstName"
+                    component="input"
+                    type="text"
+                    placeholder="First Name"
+                  />
+                </div>
+              </div>
+              <div>
+                <button type="submit" disabled={pristine || submitting}>
+                  Submit
+                </button>
+                <button type="button" disabled={pristine || submitting} onClick={reset}>
+                  Clear Values
+                </button>
+              </div>
+            </form>
+          )
+        }
+
+        export default reduxForm({
+          form: 'LoginForm' // a unique identifier for this form
+        })(LoginForm)
     - name: Taday
       actions: authLoginUserFailure
       selectors: 
