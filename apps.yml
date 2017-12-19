@@ -156,30 +156,54 @@
         // export default connect(mapStateToProps, mapActionsToProps)(LoginRoute);
 
         export default LoginRoute
-    - name: LoginForm
+    - name: LoginFormRedux
       actions: authLoginUser
       selectors: 
       prepend: |
         import React from 'react'
         import { Field, reduxForm } from 'redux-form'
+        import { Button, Form, FormGroup, Label, Input, FormText, Col } from 'reactstrap';
+
       component_content: |
+
+        const col_wrap = (col_opts, input) => (
+          <Col {...col_opts}>
+            {input}
+          </Col>
+        )
+
+
+        const ChildField = ({children, input, label, meta, help, input_position=null label_opts={}, col_opts=null, ...rest}) => (
+          <FormGroup check={rest.check} row={rest.row} disabled={rest.disabled} className={rest.className}>
+            <Label key="label" for={"id_"+input.name} {...label_opts}>
+              {input_position=="left" ? children({input, meta, ...rest}) : ""}
+              {label}
+              {input_position=="right" ? children({input, meta, ...rest}) : ""}
+            </Label>
+            {!input_position ? (col_opts ? col_wrap(col_opts, children({input, meta, ...rest})) : children({input, meta, ...rest})) : ""}
+            {meta.touched && meta.error && <FormFeedback>{meta.error}</FormFeedback>}
+            {help && <FormText color="muted">{help}</FormText>}
+          </FormGroup>
+        )
+
+        const GridCheckField = ({col_opts={sm:2}, label_opts={check:true}, ...rest}) => {
+          return ChildField({col_opts, label_opts, ...rest})
+        }
+        
 
         const LoginForm = props => {
           const { handleSubmit, pristine, reset, submitting } = props
           return (
-            <form onSubmit={handleSubmit}>
-              <div>
-                <label>First Name</label>
-                <div>
-                  <Field
-                    name="firstName"
-                    component="input"
-                    type="text"
-                    placeholder="First Name"
-                  />
-                </div>
-              </div>
-              <div>
+            <Form onSubmit={handleSubmit}>
+                  <Field component={ChildField} name="firstName"
+                    placeholder="First Name" label="First Name"
+                    className="" help="help" disabled
+                  >
+                    {({input, meta: { touched, error }, ...rest }) => (
+                      <Input key="input" type="text" id={"id_"+input.name} {...input} placeholder={rest.placeholder} valid={error ? false: true}/>
+                    )}
+                  </Field>
+              <div>mi
                 <button type="submit" disabled={pristine || submitting}>
                   Submit
                 </button>
@@ -187,15 +211,149 @@
                   Clear Values
                 </button>
               </div>
-            </form>
+            </Form>
+          )
+        }
+
+        export default reduxForm({
+          form: 'LoginForm' // a unique identifier for this form
+        })(LoginForm)el_opts={check:true}, ...rest}) => {
+          return ChildField({col_opts, label_opts, ...rest})
+        }
+        
+
+        const LoginForm = props => {
+          const { handleSubmit, pristine, reset, submitting } = props
+          return (
+            <Form onSubmit={handleSubmit}>
+                  <Field component={ChildField} name="firstName"
+                    placeholder="First Name" label="First Name"
+                    className="" help="help" disabled
+                  >
+                    {({input, meta: { touched, error }, ...rest }) => (
+                      <Input key="input" type="text" id={"id_"+input.name} {...input} placeholder={rest.placeholder} valid={error ? false: true}/>
+                    )}
+                  </Field>
+              <div>mi
+                <button type="submit" disabled={pristine || submitting}>
+                  Submit
+                </button>
+                <button type="button" disabled={pristine || submitting} onClick={reset}>
+                  Clear Values
+                </button>
+              </div>
+            </Form>
           )
         }
 
         export default reduxForm({
           form: 'LoginForm' // a unique identifier for this form
         })(LoginForm)
-    - name: Taday
-      actions: authLoginUserFailure
-      selectors: 
+    - name: LoginForm
+      prepend: |
+        import Formsy from 'formsy-react';
+        import React from 'react';
+        import MyInput from './MyInput';
       component_content: |
-        yo
+        export default class LoginForm extends React.Component {
+          constructor(props) {
+            super(props);
+            this.disableButton = this.disableButton.bind(this);
+            this.enableButton = this.enableButton.bind(this);
+            this.state = { canSubmit: false };
+          }
+
+          disableButton() {
+            this.setState({ canSubmit: false });
+          }
+
+          enableButton() {
+            this.setState({ canSubmit: true });
+          }
+
+          submit(model) {
+            fetch('http://example.com/', {
+              method: 'post',
+              body: JSON.stringify(model)
+            });
+          }
+
+          render() {
+            return (
+              <Formsy onValidSubmit={this.submit} onValid={this.enableButton} onInvalid={this.disableButton}>
+                <MyInput name="email"
+                  placeholder="email@example.com" label="Email"
+                  className="" help="help"
+                  validations="isEmail"
+                  validationError="This is not a valid email"
+                  required
+                />
+                <button type="submit" disabled={!this.state.canSubmit}>Submit</button>
+              </Formsy>
+            );
+          }
+        }
+    - name: MyInput
+      component_content: |
+        import { withFormsy } from 'formsy-react';
+        import React from 'react';
+        import { Button, Form, FormGroup, Label, Input, FormText, FormFeedback, Col } from 'reactstrap';
+
+        const col_wrap = (col_opts, input) => (
+          <Col {...col_opts}>
+            {input}
+          </Col>
+        )
+
+
+        const ChildField = ({inputWidget, label, help, input_position=null, label_opts={}, col_opts=null, ...rest}) => (
+          <FormGroup check={rest.check} row={rest.row} disabled={rest.disabled} className={rest.className}>
+            <Label key="label" for={"id_"+rest.name} {...label_opts}>
+              {input_position=="left" ? inputWidget(rest) : ""}
+              {label}
+              {input_position=="right" ? inputWidget(rest) : ""}
+            </Label>
+            {!input_position ? (col_opts ? col_wrap(col_opts, inputWidget(rest)) : inputWidget(rest)) : ""}
+            {rest.errorMessage && <FormFeedback>{rest.errorMessage}</FormFeedback>}
+            {help && <FormText color="muted">{help}</FormText>}
+          </FormGroup>
+        )
+
+        const GridCheckField = ({col_opts={sm:2}, label_opts={check:true}, ...rest}) => {
+          return ChildField({col_opts, label_opts, ...rest})
+        }
+        
+        const InputWidget = ({errorMessage, getErrorMessage, getErrorMessages, getValue, hasValue, isFormDisabled, isValid, isPristine, isFormSubmitted, isRequired, isValidValue, resetValue, setValidations, setValue, showRequired, showError, validations, validationError, validationErrors, ...input}) => (
+          <Input key="input" type="text" id={"id_"+input.name} {...input} placeholder={input.placeholder} valid={errorMessage ? false: true}/>
+        )
+
+        class MyInput extends React.Component {
+          constructor(props) {
+            super(props);
+            this.changeValue = this.changeValue.bind(this);
+          }
+
+          getWidgetValue(event) {
+            return event.currentTarget.value;
+          }
+
+          changeValue(event) {
+            // setValue() will set the value of the component, which in
+            // turn will validate it and the rest of the form
+            // Important: Don't skip this step. This pattern is required
+            // for Formsy to work.
+            this.props.setValue(this.getWidgetValue(event));
+          }
+
+          render() {
+            // An error message is returned only if the component is invalid
+            const errorMessage = this.props.getErrorMessage();
+            
+            const {required, ...rest} = this.props;
+
+            return ChildField({inputWidget: InputWidget, onChange: this.changeValue, errorMessage: errorMessage, ...rest});
+
+          }
+        }
+
+        export default withFormsy(MyInput);
