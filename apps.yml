@@ -1,37 +1,38 @@
 - name: knoxauth
   actioncreators_prepend: |
-    // import { checkHttpStatus, parseJSON } from './utils'
+    import { checkHttpStatus, parseJSON } from './components/utils'
     import {
       push, go, replace
     } from 'react-router-redux'
-    
-    import * as _btoa from 'btoa'
-    
-    const btoa = (process.env.BUILD_FLAG_IS_CLIENT === 'true') ? window.btoa : _btoa
 
-    const api_url = (process.env.BUILD_FLAG_IS_CLIENT === 'true') ? 'frontend' : 'backend'
+    import config from '../../config';
+
+    const api_url = (process.env.BUILD_FLAG_IS_CLIENT === 'true') ? config('apiurl_frontend') : config('apiurl_backend');
 
   actions:
     - name: authLoginUserRequest
     - name: authLoginUser
       args: email,password,redirect = '/'
       thunk:
-        args: axios,cookie
+        args: axios,cookies
         thunk: |
+          
+          dispatch(authLoginUserRequest());
+
           return axios
-            .post(`${api_url}/v1/accounts/login/`, {
+            .request({
+              url: `${api_url}v1/accounts/login/`,
               method: 'post',
-              headers: {
-                  'Accept': 'application/json',
-                  'Content-Type': 'application/json',
-                  'Authorization': `Basic ${auth}`
+              auth: {
+                username: email,
+                password: password
               }
           })
           .then(checkHttpStatus)
-          .then(parseJSON)
           .then((response) => {
-              cookies.set('knoxToken', response.token)
-              dispatch(authLoginUserSuccess(response.user));
+              cookies.set('knoxToken', response.data.token)
+              dispatch(authLoginUserSuccess(response.data.user));
+              dispatch(push(redirect));
           })
           .then(() => true)
           .catch((error) => {
@@ -128,7 +129,19 @@
                 statusText: 'You have been successfully logged out.'
             });
   selectors:
-  components:    
+  components:
+    - name: utils
+      component_content: |
+        export function checkHttpStatus(response) {
+            if (response.status >= 200 && response.status < 300) {
+                return response;
+            }
+
+            const error = new Error(response.statusText);
+            error.response = response;
+            throw error;
+        }
+
     - name: LoginRoute
       actions:
       selectors:
@@ -147,7 +160,7 @@
           render() {
             return (
               <div>
-                <h3>Login</h3><LoginForm />
+                <h3>Login</h3><LoginForm next="/counter" />
               </div>
             );
           }
@@ -156,111 +169,32 @@
         // export default connect(mapStateToProps, mapActionsToProps)(LoginRoute);
 
         export default LoginRoute
-    - name: LoginFormRedux
-      actions: authLoginUser
-      selectors: 
-      prepend: |
-        import React from 'react'
-        import { Field, reduxForm } from 'redux-form'
-        import { Button, Form, FormGroup, Label, Input, FormText, Col } from 'reactstrap';
-
-      component_content: |
-
-        const col_wrap = (col_opts, input) => (
-          <Col {...col_opts}>
-            {input}
-          </Col>
-        )
-
-
-        const ChildField = ({children, input, label, meta, help, input_position=null label_opts={}, col_opts=null, ...rest}) => (
-          <FormGroup check={rest.check} row={rest.row} disabled={rest.disabled} className={rest.className}>
-            <Label key="label" for={"id_"+input.name} {...label_opts}>
-              {input_position=="left" ? children({input, meta, ...rest}) : ""}
-              {label}
-              {input_position=="right" ? children({input, meta, ...rest}) : ""}
-            </Label>
-            {!input_position ? (col_opts ? col_wrap(col_opts, children({input, meta, ...rest})) : children({input, meta, ...rest})) : ""}
-            {meta.touched && meta.error && <FormFeedback>{meta.error}</FormFeedback>}
-            {help && <FormText color="muted">{help}</FormText>}
-          </FormGroup>
-        )
-
-        const GridCheckField = ({col_opts={sm:2}, label_opts={check:true}, ...rest}) => {
-          return ChildField({col_opts, label_opts, ...rest})
-        }
-        
-
-        const LoginForm = props => {
-          const { handleSubmit, pristine, reset, submitting } = props
-          return (
-            <Form onSubmit={handleSubmit}>
-                  <Field component={ChildField} name="firstName"
-                    placeholder="First Name" label="First Name"
-                    className="" help="help" disabled
-                  >
-                    {({input, meta: { touched, error }, ...rest }) => (
-                      <Input key="input" type="text" id={"id_"+input.name} {...input} placeholder={rest.placeholder} valid={error ? false: true}/>
-                    )}
-                  </Field>
-              <div>mi
-                <button type="submit" disabled={pristine || submitting}>
-                  Submit
-                </button>
-                <button type="button" disabled={pristine || submitting} onClick={reset}>
-                  Clear Values
-                </button>
-              </div>
-            </Form>
-          )
-        }
-
-        export default reduxForm({
-          form: 'LoginForm' // a unique identifier for this form
-        })(LoginForm)el_opts={check:true}, ...rest}) => {
-          return ChildField({col_opts, label_opts, ...rest})
-        }
-        
-
-        const LoginForm = props => {
-          const { handleSubmit, pristine, reset, submitting } = props
-          return (
-            <Form onSubmit={handleSubmit}>
-                  <Field component={ChildField} name="firstName"
-                    placeholder="First Name" label="First Name"
-                    className="" help="help" disabled
-                  >
-                    {({input, meta: { touched, error }, ...rest }) => (
-                      <Input key="input" type="text" id={"id_"+input.name} {...input} placeholder={rest.placeholder} valid={error ? false: true}/>
-                    )}
-                  </Field>
-              <div>mi
-                <button type="submit" disabled={pristine || submitting}>
-                  Submit
-                </button>
-                <button type="button" disabled={pristine || submitting} onClick={reset}>
-                  Clear Values
-                </button>
-              </div>
-            </Form>
-          )
-        }
-
-        export default reduxForm({
-          form: 'LoginForm' // a unique identifier for this form
-        })(LoginForm)
     - name: LoginForm
+      actions:
+        authLoginUser: authLoginUser
       prepend: |
         import Formsy from 'formsy-react';
         import React from 'react';
+        import { compose } from 'redux';
+        import { connect } from 'react-redux';
         import MyInput from './MyInput';
+        import { Form } from 'reactstrap';
       component_content: |
-        export default class LoginForm extends React.Component {
+
+        const grid = {
+          label_opts: {sm: 1},
+          col_opts: {sm: 3}
+        }
+
+        class LoginForm extends React.Component {
           constructor(props) {
             super(props);
             this.disableButton = this.disableButton.bind(this);
             this.enableButton = this.enableButton.bind(this);
+            this.submit = this.submit.bind(this);
             this.state = { canSubmit: false };
+            this.authLoginUser = props.authLoginUser;
+            this.next = props.next;
           }
 
           disableButton() {
@@ -272,32 +206,39 @@
           }
 
           submit(model) {
-            fetch('http://example.com/', {
-              method: 'post',
-              body: JSON.stringify(model)
-            });
+            this.authLoginUser(model.email, model.password, this.next);
           }
 
           render() {
             return (
-              <Formsy onValidSubmit={this.submit} onValid={this.enableButton} onInvalid={this.disableButton}>
-                <MyInput name="email"
+              <Form tag={Formsy} onValidSubmit={this.submit} onValid={this.enableButton} onInvalid={this.disableButton}>
+                <MyInput type="text" name="email"
                   placeholder="email@example.com" label="Email"
-                  className="" help="help"
                   validations="isEmail"
                   validationError="This is not a valid email"
-                  required
+                  required row {...grid}
+                />
+                <MyInput type="password" name="password"
+                  placeholder="Password" label="Password"
+                  validations="isAlphanumeric"
+                  validationError="This is not a valid password"
+                  required row {...grid}
                 />
                 <button type="submit" disabled={!this.state.canSubmit}>Submit</button>
-              </Formsy>
+              </Form>
             );
           }
         }
+        export default LoginForm = compose(
+          //connect(mapStateToProps, mapActionsToProps)
+          connect(()=>({}), mapActionsToProps)
+        )(LoginForm);
+
     - name: MyInput
       component_content: |
         import { withFormsy } from 'formsy-react';
         import React from 'react';
-        import { Button, Form, FormGroup, Label, Input, FormText, FormFeedback, Col } from 'reactstrap';
+        import { FormGroup, Label, Input, FormText, FormFeedback, Col } from 'reactstrap';
 
         const col_wrap = (col_opts, input) => (
           <Col {...col_opts}>
@@ -306,8 +247,8 @@
         )
 
 
-        const ChildField = ({inputWidget, label, help, input_position=null, label_opts={}, col_opts=null, ...rest}) => (
-          <FormGroup check={rest.check} row={rest.row} disabled={rest.disabled} className={rest.className}>
+        const ChildField = ({inputWidget, row, label, help, input_position=null, label_opts={}, col_opts=null, ...rest}) => (
+          <FormGroup check={rest.check} row={row} disabled={rest.disabled} className={rest.className}>
             <Label key="label" for={"id_"+rest.name} {...label_opts}>
               {input_position=="left" ? inputWidget(rest) : ""}
               {label}
@@ -323,8 +264,29 @@
           return ChildField({col_opts, label_opts, ...rest})
         }
         
-        const InputWidget = ({errorMessage, getErrorMessage, getErrorMessages, getValue, hasValue, isFormDisabled, isValid, isPristine, isFormSubmitted, isRequired, isValidValue, resetValue, setValidations, setValue, showRequired, showError, validations, validationError, validationErrors, ...input}) => (
-          <Input key="input" type="text" id={"id_"+input.name} {...input} placeholder={input.placeholder} valid={errorMessage ? false: true}/>
+        const InputWidget = ({
+            errorMessage,
+            getErrorMessage,
+            getErrorMessages,
+            getValue,
+            hasValue,
+            isFormDisabled,
+            isValid,
+            isPristine,
+            isFormSubmitted,
+            isRequired,
+            isValidValue,
+            resetValue,
+            setValidations,
+            setValue,
+            showRequired,
+            showError,
+            validations,
+            validationError,
+            validationErrors,
+            ...input
+          }) => (
+          <Input key="input" id={"id_"+input.name} {...input} placeholder={input.placeholder} valid={errorMessage ? false: true}/>
         )
 
         class MyInput extends React.Component {

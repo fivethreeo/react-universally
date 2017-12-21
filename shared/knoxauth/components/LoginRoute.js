@@ -11,7 +11,7 @@ class LoginRoute extends React.Component {
     return (
       <div>
         <h3>Login</h3>
-        <LoginForm />
+        <LoginForm next="/counter" />
       </div>
     );
   }

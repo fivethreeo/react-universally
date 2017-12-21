@@ -1,6 +1,6 @@
 import { withFormsy } from 'formsy-react';
 import React from 'react';
-import { Button, Form, FormGroup, Label, Input, FormText, FormFeedback, Col } from 'reactstrap';
+import { FormGroup, Label, Input, FormText, FormFeedback, Col } from 'reactstrap';
 
 const col_wrap = (col_opts, input) =>
   (<Col {...col_opts}>
@@ -9,6 +9,7 @@ const col_wrap = (col_opts, input) =>
 
 const ChildField = ({
   inputWidget,
+  row,
   label,
   help,
   input_position = null,
@@ -16,7 +17,7 @@ const ChildField = ({
   col_opts = null,
   ...rest
 }) =>
-  (<FormGroup check={rest.check} row={rest.row} disabled={rest.disabled} className={rest.className}>
+  (<FormGroup check={rest.check} row={row} disabled={rest.disabled} className={rest.className}>
     <Label key="label" for={`id_${rest.name}`} {...label_opts}>
       {input_position == 'left' ? inputWidget(rest) : ''}
       {label}
@@ -59,7 +60,6 @@ const InputWidget = ({
 }) =>
   (<Input
     key="input"
-    type="text"
     id={`id_${input.name}`}
     {...input}
     placeholder={input.placeholder}

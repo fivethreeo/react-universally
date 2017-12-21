@@ -12,7 +12,7 @@ function configureStore(cookies, history, initialState) {
       // arguments to all the redux-thunk actions. Below we are passing a
       // preconfigured axios instance which can be used to fetch data with.
       // @see https://github.com/gaearon/redux-thunk
-      thunk.withExtraArgument({ axios, cookies }),
+      thunk.withExtraArgument({ axios: axios.create(), cookies }),
       routerMiddleware(history),
     ),
     // Redux Dev Tools store enhancer.

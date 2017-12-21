@@ -298,7 +298,7 @@ function write_apps(doc) {
         let actions_map_str = actions_map.join(',\n');
         actions_map_str = actions_map_str ? indentString(actions_map_str) : '';
         actions_map_str = actions_map_str
-          ? `const mapActionsToProps = {\n${actions_map_str}\n}\n\n`
+          ? `\nconst mapActionsToProps = {\n${actions_map_str}\n}\n\n`
           : '';
 
         const component_selectors = component.selectors || {};

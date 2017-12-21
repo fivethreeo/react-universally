@@ -5,33 +5,37 @@ import {
   AUTH_LOGOUT_USER,
 } from './actions';
 
-// import { checkHttpStatus, parseJSON } from './utils'
+import { checkHttpStatus, parseJSON } from './components/utils';
 import { push, go, replace } from 'react-router-redux';
 
-import * as _btoa from 'btoa';
+import config from '../../config';
 
-const btoa = process.env.BUILD_FLAG_IS_CLIENT === 'true' ? window.btoa : _btoa;
-
-const api_url = process.env.BUILD_FLAG_IS_CLIENT === 'true' ? 'frontend' : 'backend';
+const api_url =
+  process.env.BUILD_FLAG_IS_CLIENT === 'true'
+    ? config('apiurl_frontend')
+    : config('apiurl_backend');
 
 export const authLoginUserRequest = () => ({
   type: AUTH_LOGIN_USER_REQUEST,
 });
 
-export const authLoginUser = (email, password, redirect = '/') => (dispatch, getState, { axios, cookie }) => axios
-      .post(`${api_url}/v1/accounts/login/`, {
+export const authLoginUser = (email, password, redirect = '/') => (dispatch, getState, { axios, cookies }) => {
+  dispatch(authLoginUserRequest());
+
+  return axios
+      .request({
+        url: `${api_url}v1/accounts/login/`,
         method: 'post',
-        headers: {
-          Accept: 'application/json',
-          'Content-Type': 'application/json',
-          Authorization: `Basic ${auth}`,
+        auth: {
+          username: email,
+          password,
         },
       })
       .then(checkHttpStatus)
-      .then(parseJSON)
       .then((response) => {
-        cookies.set('knoxToken', response.token);
-        dispatch(authLoginUserSuccess(response.user));
+        cookies.set('knoxToken', response.data.token);
+        dispatch(authLoginUserSuccess(response.data.user));
+        dispatch(push(redirect));
       })
       .then(() => true)
       .catch((error) => {
@@ -57,6 +61,7 @@ export const authLoginUser = (email, password, redirect = '/') => (dispatch, get
 
         return Promise.resolve(true); // TODO: we need a promise here because of the tests, find a better way
       });
+};
 
 export const authLogoutAndRedirect = () => (dispatch, getState, { axios, cookie }) => axios
       .get(`https://jsonplaceholder.typicode.com/Todos/${id}`)

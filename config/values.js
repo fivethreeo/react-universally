@@ -33,7 +33,7 @@ const values = {
     // We need to expose all the htmlPage settings.
     htmlPage: true,
     // We need to expose the api url.
-    apiurl: true,
+    apiurl_frontend: true,
   },
 
   // The host on which the server should run.
@@ -42,13 +42,13 @@ const values = {
   port: EnvVars.number('PORT', 1337),
 
   // The host on which the server should run.
-  apiurl:
+  apiurl_frontend:
     EnvVars.string('API_HOST', 'http://localhost') +
     valueDefault(EnvVars.number('API_PORT', 8000), '', ':', '') +
     EnvVars.string('API_PATH', '/api/'),
 
   // The host on which the server should run.
-  apihost_backend:
+  apiurl_backend:
     EnvVars.string('API_HOST_BACKEND', 'http://django') +
     valueDefault(EnvVars.number('API_PORT_BACKEND', 8000), '', ':', '') +
     EnvVars.string('API_PATH_BACKEND', '/api/'),

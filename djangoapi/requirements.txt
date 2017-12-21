@@ -7,3 +7,5 @@ djangorestframework
 Markdown
 Pillow
 requests
+django-disposable-email-checker
+django-cors-headers

@@ -6,12 +6,11 @@
     } from 'react-router-redux'
 
     if (process.env.BUILD_FLAG_IS_CLIENT === 'true') {
-      const btoa = window.btoa;
       let api_url = 'frontend';
     } else {
-      import * as btoa from 'btoa';
       let api_url = 'backend';
     }
+    
   actions:
     - name: authLoginUserRequest
     - name: authLoginUser
@@ -19,14 +18,23 @@
       thunk:
         args: axios,cookie
         thunk: |
+
+          dispatch(authLoginUserRequest());
+
           return axios
-            .post(`${api_url}/v1/accounts/login/`, {
+            .request({
+              url: `${api_url}/v1/accounts/login/`,
               method: 'post',
               headers: {
                   'Accept': 'application/json',
-                  'Content-Type': 'application/json',
-                  'Authorization': `Basic ${auth}`
-              }
+                  'Content-Type': 'application/json'
+              },
+              auth: {
+                username: email,
+                password: password
+              },
+              params: {}
+
           })
           .then(checkHttpStatus)
           .then(parseJSON)

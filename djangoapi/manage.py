@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 import os
 import sys
+import threading
+
+threading.stack_size(1000000)
 
 if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "djangoapi.settings")
