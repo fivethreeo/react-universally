@@ -86,6 +86,43 @@
           dispatch(authLogoutUserDo())
           dispatch(push('/login'))
           return Promise.resolve(true)
+    # - name: authRegisterUserRequest
+    # - name: authRegisterUser
+    #   args: data
+    #   thunk:
+    #     args: axios
+    #     thunk: |
+          
+    #       dispatch(authRegisterUserRequest());
+
+    #       return axios
+    #         .request({
+    #           url: `${api_url}v1/accounts/register/`,
+    #           method: 'post',
+    #           data
+    #       })
+    #       .then(checkHttpStatus)
+    #       .then((response) => {
+    #           dispatch(authRegisterUserSuccess(response.data.user));
+    #       })
+    #       .then(() => true)
+    #       .catch((error) => {
+    #           if (error && typeof error.response !== 'undefined' && error.response.status === 401) {
+    #               // Invalid authentication credentials
+    #               dispatch(authRegisterUserFailureReport(401, error.response.data.non_field_errors[0]));
+
+    #           } else if (error && typeof error.response !== 'undefined' && error.response.status >= 500) {
+    #               // Server side error
+    #               dispatch(authRegisterUserFailureReport(500, 'A server error occurred while sending your data!'));
+    #           } else {
+    #               // Most likely connection issues
+    #               dispatch(authRegisterUserFailureReport('Connection Error', 'An error occurred while sending your data!'));
+    #           }
+
+    #           return Promise.resolve(true); // TODO: we need a promise here because of the tests, find a better way
+    #         })
+    # - name: authRegisterUserSuccess
+    #   args: payload
 
   reducers_prepend: |
     const initialState = {
@@ -141,6 +178,36 @@
             error.response = response;
             throw error;
         }
+
+    - name: AccountsRoute
+      actions:
+      selectors:
+      prepend: |
+        import React from 'react';
+        import PropTypes, { string } from 'prop-types';
+        import { compose } from 'redux';
+        import { connect } from 'react-redux';
+        import { withJob } from 'react-jobs';
+        import Helmet from 'react-helmet';
+        import Switch from 'react-router-dom/Switch';
+        import Route from 'react-router-dom/Route';
+        import LoginRoute from './LoginRoute';
+        import RegisterRoute from './RegisterRoute';
+      component_content: |
+
+        class AccountsRoute extends React.Component {
+
+          render() {
+            return (
+              <Switch>
+                <Route path="/accounts/login" component={LoginRoute} />
+                <Route path="/accounts/register" component={RegisterRoute} />
+              </Switch>
+            );
+          }
+        }
+
+        export default AccountsRoute
 
     - name: LoginRoute
       actions:
@@ -211,7 +278,7 @@
 
           render() {
             return (
-              <Form tag={Formsy} onValidSubmit={this.submit} onValid={this.enableButton} onInvalid={this.disableButton}>
+              <Form method="post" action="/accounts/login?redirect={this.next}" tag={Formsy} onValidSubmit={this.submit} onValid={this.enableButton} onInvalid={this.disableButton}>
                 <MyInput type="text" name="email"
                   placeholder="email@example.com" label="Email"
                   validations="isEmail"
@@ -234,15 +301,120 @@
           connect(()=>({}), mapActionsToProps)
         )(LoginForm);
 
+    - name: RegisterRoute
+      actions:
+      selectors:
+      prepend: |
+        import React from 'react';
+        import PropTypes, { string } from 'prop-types';
+        import { compose } from 'redux';
+        import { connect } from 'react-redux';
+        import { withJob } from 'react-jobs';
+        import Helmet from 'react-helmet';
+        import RegisterForm from './RegisterForm';
+      component_content: |
+
+        class RegisterRoute extends React.Component {
+
+          render() {
+            return (
+              <div>
+                <h3>Register</h3><RegisterForm next="/counter" />
+              </div>
+            );
+          }
+        }
+        export default RegisterRoute
+    - name: RegisterForm
+      actions:
+        authLoginUser: authLoginUser
+      prepend: |
+        import Formsy from 'formsy-react';
+        import React from 'react';
+        import { compose } from 'redux';
+        import { connect } from 'react-redux';
+        import MyInput from './MyInput';
+        import { Form } from 'reactstrap';
+      component_content: |
+
+        const grid = {
+          label_opts: {sm: 2},
+          col_opts: {sm: 3}
+        }
+
+        class RegisterForm extends React.Component {
+          constructor(props) {
+            super(props);
+            this.disableButton = this.disableButton.bind(this);
+            this.enableButton = this.enableButton.bind(this);
+            this.submit = this.submit.bind(this);
+            this.state = { canSubmit: false };
+            this.authLoginUser = props.authLoginUser;
+            this.next = props.next;
+          }
+
+          disableButton() {
+            this.setState({ canSubmit: false });
+          }
+
+          enableButton() {
+            this.setState({ canSubmit: true });
+          }
+
+          submit(model) {
+            this.authLoginUser(model.email, model.password, this.next);
+          }
+
+          render() {
+            return (
+              <Form method="post" action="/accounts/register?redirect={this.next}" tag={Formsy} onValidSubmit={this.submit} onValid={this.enableButton} onInvalid={this.disableButton}>
+                <MyInput type="text" name="first_name"
+                  placeholder="First name" label="First name"
+                  required row {...grid}
+                />
+                <MyInput type="text" name="last_name"
+                  placeholder="Last name" label="Last name"
+                  required row {...grid}
+                />
+                <MyInput type="text" name="email"
+                  placeholder="email@example.com" label="Email"
+                  validations="isEmail"
+                  validationError="This is not a valid email"
+                  required row {...grid}
+                />
+                <MyInput type="password" name="password"
+                  placeholder="Password" label="Password"
+                  validations="isAlphanumeric"
+                  validationError="This is not a valid password"
+                  required row {...grid}
+                />
+                <MyInput type="password" name="password_again"
+                  placeholder="Password" label="Password again"
+                  validations="equalsField:password"
+                  validationError="Passwords do not match"
+                  help="Kghujl "
+                  required row {...grid}
+                />
+                <button type="submit" disabled={!this.state.canSubmit}>Submit</button>
+              </Form>
+            );
+          }
+        }
+        export default RegisterForm = compose(
+          //connect(mapStateToProps, mapActionsToProps)
+          connect(()=>({}), mapActionsToProps)
+        )(RegisterForm);
+
     - name: MyInput
       component_content: |
         import { withFormsy } from 'formsy-react';
         import React from 'react';
         import { FormGroup, Label, Input, FormText, FormFeedback, Col } from 'reactstrap';
 
-        const col_wrap = (col_opts, input) => (
+        const col_wrap = (col_opts, input, rest) => (
           <Col {...col_opts}>
             {input}
+            {rest.errorMessage && <FormFeedback>{rest.errorMessage}</FormFeedback>}
           </Col>
         )
 
@@ -254,8 +426,8 @@
               {label}
               {input_position=="right" ? inputWidget(rest) : ""}
             </Label>
-            {!input_position ? (col_opts ? col_wrap(col_opts, inputWidget(rest)) : inputWidget(rest)) : ""}
-            {rest.errorMessage && <FormFeedback>{rest.errorMessage}</FormFeedback>}
+            {!input_position ? (col_opts ? col_wrap(col_opts, inputWidget(rest), rest) : inputWidget(rest)) : ""}
+            {!col_opts && rest.errorMessage && <FormFeedback>{rest.errorMessage}</FormFeedback>}
             {help && <FormText color="muted">{help}</FormText>}
           </FormGroup>
         )

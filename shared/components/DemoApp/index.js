@@ -16,7 +16,7 @@ import AsyncHomeRoute from './AsyncHomeRoute';
 import AsyncCounterRoute from './AsyncCounterRoute';
 import AsyncPostsRoute from './AsyncPostsRoute';
 import AsyncAboutRoute from './AsyncAboutRoute';
-import LoginRoute from '../../knoxauth/components/LoginRoute';
+import AccountsRoute from '../../knoxauth/components/AccountsRoute';
 
 function DemoApp() {
   return (
@@ -114,7 +114,7 @@ function DemoApp() {
           <Route path="/counter" component={AsyncCounterRoute} />
           <Route path="/posts" component={AsyncPostsRoute} />
           <Route path="/about" component={AsyncAboutRoute} />
-          <Route path="/login" component={LoginRoute} />
+          <Route path="/accounts" component={AccountsRoute} />
           <Route component={Error404} />
         </Switch>
       </div>

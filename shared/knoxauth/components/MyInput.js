@@ -2,9 +2,13 @@ import { withFormsy } from 'formsy-react';
 import React from 'react';
 import { FormGroup, Label, Input, FormText, FormFeedback, Col } from 'reactstrap';
 
-const col_wrap = (col_opts, input) =>
+const col_wrap = (col_opts, input, rest) =>
   (<Col {...col_opts}>
     {input}
+    {rest.errorMessage &&
+      <FormFeedback>
+        {rest.errorMessage}
+      </FormFeedback>}
   </Col>);
 
 const ChildField = ({
@@ -23,8 +27,11 @@ const ChildField = ({
       {label}
       {input_position == 'right' ? inputWidget(rest) : ''}
     </Label>
-    {!input_position ? (col_opts ? col_wrap(col_opts, inputWidget(rest)) : inputWidget(rest)) : ''}
-    {rest.errorMessage &&
+    {!input_position
+      ? col_opts ? col_wrap(col_opts, inputWidget(rest), rest) : inputWidget(rest)
+      : ''}
+    {!col_opts &&
+      rest.errorMessage &&
       <FormFeedback>
         {rest.errorMessage}
       </FormFeedback>}

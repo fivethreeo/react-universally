@@ -12,11 +12,11 @@ const mapActionsToProps = {
 };
 
 const grid = {
-  label_opts: { sm: 1 },
+  label_opts: { sm: 2 },
   col_opts: { sm: 3 },
 };
 
-class LoginForm extends React.Component {
+class RegisterForm extends React.Component {
   constructor(props) {
     super(props);
     this.disableButton = this.disableButton.bind(this);
@@ -43,12 +43,30 @@ class LoginForm extends React.Component {
     return (
       <Form
         method="post"
-        action="/accounts/login?redirect={this.next}"
+        action="/accounts/register?redirect={this.next}"
         tag={Formsy}
         onValidSubmit={this.submit}
         onValid={this.enableButton}
         onInvalid={this.disableButton}
       >
+        <MyInput
+          type="text"
+          name="first_name"
+          placeholder="First name"
+          label="First name"
+          required
+          row
+          {...grid}
+        />
+        <MyInput
+          type="text"
+          name="last_name"
+          placeholder="Last name"
+          label="Last name"
+          required
+          row
+          {...grid}
+        />
         <MyInput
           type="text"
           name="email"
@@ -71,6 +89,18 @@ class LoginForm extends React.Component {
           row
           {...grid}
         />
+        <MyInput
+          type="password"
+          name="password_again"
+          placeholder="Password"
+          label="Password again"
+          validations="equalsField:password"
+          validationError="Passwords do not match"
+          help="Kghujl "
+          required
+          row
+          {...grid}
+        />
         <button type="submit" disabled={!this.state.canSubmit}>
           Submit
         </button>
@@ -78,7 +108,7 @@ class LoginForm extends React.Component {
     );
   }
 }
-export default (LoginForm = compose(
+export default (RegisterForm = compose(
   // connect(mapStateToProps, mapActionsToProps)
   connect(() => ({}), mapActionsToProps),
-)(LoginForm));
+)(RegisterForm));
